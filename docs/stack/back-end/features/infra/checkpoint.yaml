@@ -1,0 +1,59 @@
+schema_version: 1
+managed_by: orchestration-flow
+feature: infra
+status: complete
+contract:
+  path: contract.md
+  revision: 2
+tdd: yes
+implementation_authorized_at: "2026-09-08T14:21:28-03:00"
+workspace: null
+active_task: null
+active_repositories: []
+worker_ownership: {}
+completed_summary:
+  - Contract revision 2 is approved and plan revision 3 was executed with TDD across B01-B05.
+  - Configuration, Compose topology, migrations, Auth bootstrap, backup, restore, inspection, runbook and disposable acceptance were corrected within the approved contract.
+  - Static and unit suites plus Bash syntax pass on the final implementation.
+  - Final local disposable integration run 190c679c1a48afb4 passed after closure corrections.
+  - Authorized VM disposable run e8a64a60d2a2d1a6 passed; the original observed VM stack remained isolated and its final read-only inspect also passed.
+  - Integrated validation findings MIG-LEDGER-001 and BACKUP-ARCHIVE-001 were corrected and closed by bounded verification.
+  - VECTOR-COMPAT-001 aligned the package with the original VM by pinning its exact pgvector image digest and accepting vector versions from 0.8.0 inclusive to 1.0.0 exclusive; no extension downgrade or ALTER EXTENSION was added.
+  - Integrated review passed with no P0-P3 findings; disposable local run e41cb7e73e6adf9e passed the full acceptance matrix after one failed disposable attempt c269c9bf6b004dd6.
+  - VOLUME-IDENTITY-001 restored the logical volume name mindforge-postgres-data; local disposable run 1cfd5b80c54c693f passed the full acceptance matrix and project infra renders infra_mindforge-postgres-data.
+  - The corrected 28-file package was deployed over the original VM checkout after a validated external backup and recoverable snapshot; DB/Auth were recreated against the protected original volume and final independent inspection passed.
+remaining:
+  - "Optional owner-authorized cleanup of retained disposable local test volumes; this does not block the completed infra delivery."
+evidence:
+  - docs/stack/back-end/features/infra/contract.md
+  - docs/stack/back-end/features/infra/plan.md
+  - src/brain-engine/features/infra/tests/run.sh
+  - "Final local static all, unit all and Bash syntax: exit 0."
+  - "Final local disposable integration run 190c679c1a48afb4: exit 0; GoTrue migrations/catalog, signup/password grant, vector rollback, stop/start persistence, external backup, isolated restore, idempotent replay and no-domain checks passed."
+  - "Authorized VM disposable run e8a64a60d2a2d1a6: exit 0 with the same acceptance matrix in isolated projects and volumes."
+  - "Final read-only VM check: disposable containers active 0; final run volumes present 3; original stack inspect PASS."
+  - "Integrated validation closure: BACKUP-ARCHIVE-001 CLOSED; MIG-LEDGER-001 CLOSED with orphan-ledger failure before CREATE SCHEMA, CREATE TABLE or BEGIN."
+  - "Authorized disposable cleanup: exactly 45 local and 11 VM mf-accept volumes plus 5 exact VM temporary package directories removed; post-check found zero remaining disposable volumes, containers or package directories."
+  - "Post-cleanup VM protection check: infra_mindforge-postgres-data remained referenced; mindforge-postgres and mindforge-auth remained running/healthy; original ./scripts/inspect.sh exited 0."
+  - "Remote deployment preflight retried at 2026-09-08T21:19:51-03:00: a configured SSH alias resolved to a redacted historical target and timed out; the redacted historical target rejected both configured keys; no remote mutation occurred."
+  - "Authenticated preflight at 2026-09-08T21:32:44-03:00: identified private test VM; infrastructure checkout, Compose project infra, protected volume infra_mindforge-postgres-data, healthy PostgreSQL 16.15/Auth, and installed/available vector 0.8.6 were confirmed; no remote mutation occurred."
+  - "Current PostgreSQL image digest: pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b (linux/amd64)."
+  - "VECTOR-COMPAT-001 focused expected-red observed; focused green, static all, unit all, Bash syntax and Compose config validation exited 0. Local disposable integration was blocked before mutation by Colima socket permission denied."
+  - "VECTOR-COMPAT-001 integrated review: PASS with no P0-P3 findings; static/unit/syntax and Compose rendering passed."
+  - "Local disposable run e41cb7e73e6adf9e: exit 0; migrations/GoTrue, inspect, vector compatibility, signup/password grant, vector rollback, persistence, external backup, isolated restore, idempotent replay and no-domain checks passed."
+  - "Identified private test VM predeploy backup mindforge-infra-20260909T010436Z-validated.dump: mode 600; pg_restore --list PASS."
+  - "Identified private test VM predeploy snapshot mindforge-infra-20260909T010501Z-predeploy and exact 28-file staging artifact payload-ustar were created and verified before checkout replacement."
+  - "First identified private test VM up.sh exited 0 but exposed VOLUME-IDENTITY-001: infra-db-1 attached new infra_postgres-data while protected infra_mindforge-postgres-data remained intact and unreferenced; no volume was deleted or restored."
+  - "VOLUME-IDENTITY-001 expected-red observed; focused/static/unit/Bash syntax passed; Compose rendered infra_mindforge-postgres-data for project infra and project-scoped names for disposable projects; local disposable run 1cfd5b80c54c693f exited 0."
+  - "VOLUME-IDENTITY-001 targeted review: PASS with no P0-P3 findings."
+  - "Identified private test VM final deploy: exact 28-file surface and modes verified; up.sh .env infra PASS; infra-db-1 and infra-auth-1 running/healthy; infra-db-1 mounts infra_mindforge-postgres-data read-write; PostgreSQL 16.15, vector 0.8.6, Auth /health 200, ledger 0001-0004 without drift/orphan, zero domain tables, loopback bindings only."
+  - "Root final read-only verification: inspect.sh PASS; /infra-db-1 running/healthy with infra_mindforge-postgres-data mounted read-write; /infra-auth-1 running/healthy; host bindings remained loopback-only."
+  - "Scoped regression cleanup: infra_postgres-data was verified unreferenced and distinct from the protected volume, then removed; final inspect.sh exited 0 and infra_mindforge-postgres-data remained mounted read-write with one reference."
+limitations:
+  - The corrected package is deployed on the identified test VM only; retained disposable local test volumes remain preserved pending separate cleanup authority.
+  - Evidence proves the identified local environment and authorized test VM only; production, Internet, LAN, firewall, DNS, TLS, Coolify and real data remain outside scope.
+  - "At this public-repo checkpoint, root Git metadata exists on branch main with no commits before this checkpoint; tracking, upstream, publication and Git cleanliness are not yet verifiable."
+  - No Mindforge product endpoint was created or affected; contracts/openapi/registry.yaml remains empty.
+blocker: null
+resume_from: "infra delivery complete; next product work requires an owner-approved feature contract, while residual volume cleanup remains optional and separately authorized"
+updated_at: "2026-09-12T15:55:53-03:00"

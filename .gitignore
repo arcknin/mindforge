@@ -1,0 +1,49 @@
+# Operating-system metadata
+.DS_Store
+
+# Local environment files. Keep the non-secret template versioned.
+.env
+.env.*
+!.env.example
+
+# Secrets, tokens, private keys and certificates
+secrets/
+tokens/
+keys/
+certs/
+*.secret
+*.secrets
+*.token
+*.tokens
+*.key
+*.pem
+*.crt
+*.cer
+*.der
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+
+# Dumps, backups, partial outputs, logs and process markers
+dumps/
+partials/
+logs/
+pids/
+*.dump
+*.backup
+*.bak
+*.partial
+*.part
+*.log
+*.pid
+*.pidfile
+backups/
+acceptance-artifacts/
+tmp/
+
+# Known checkout residues
+Home.md
+mf-backup-test/
+mf-accept-opstest1234-restore/
