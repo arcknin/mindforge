@@ -1,0 +1,14 @@
+# Owner-supplied configuration and secrets
+.env
+.env.*
+!.env.example
+*.secret
+*.token
+
+# Database artifacts and disposable validation output
+*.dump
+*.backup
+*.partial
+backups/
+acceptance-artifacts/
+tmp/
