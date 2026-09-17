@@ -1,0 +1,26 @@
+schema_version: 1
+
+# Esquema obrigatório para futuras entradas. `lifecycle` resume os três estados,
+# enquanto `gate` registra bloqueio sem criar um quinto estado de lifecycle.
+state_model:
+  lifecycle:
+    - proposed
+    - approved
+    - implemented
+    - verified
+  contract_status:
+    - proposed
+    - approved
+  implementation_status:
+    - pending
+    - implemented
+  runtime_status:
+    - pending
+    - verified
+  gate:
+    - null
+    - needs_decision
+
+# O registro começa vazio de propósito. Capabilities e exemplos arquiteturais
+# não são endpoints até que exista uma proposta explícita e aprovada pelo owner.
+endpoints: []
