@@ -1,7 +1,7 @@
 schema_version: 1
 managed_by: orchestration-flow
 feature: infra
-status: complete
+status: paused
 contract:
   path: contract.md
   revision: 2
@@ -24,6 +24,7 @@ completed_summary:
   - The corrected 28-file package was deployed over the original VM checkout after a validated external backup and recoverable snapshot; DB/Auth were recreated against the protected original volume and final independent inspection passed.
 remaining:
   - "Optional owner-authorized cleanup of retained disposable local test volumes; this does not block the completed infra delivery."
+  - "Amend contract revision 2 before any new migration validation: owner decision on 2026-09-18 requires SQL to be authored locally and executed only on the owner-designated infrastructure/VM, never against temporary or disposable Docker/PostgreSQL targets."
 evidence:
   - docs/stack/back-end/features/infra/contract.md
   - docs/stack/back-end/features/infra/plan.md
@@ -54,6 +55,7 @@ limitations:
   - Evidence proves the identified local environment and authorized test VM only; production, Internet, LAN, firewall, DNS, TLS, Coolify and real data remain outside scope.
   - "At this public-repo checkpoint, root Git metadata exists on branch main with no commits before this checkpoint; tracking, upstream, publication and Git cleanliness are not yet verifiable."
   - No Mindforge product endpoint was created or affected; contracts/openapi/registry.yaml remains empty.
-blocker: null
-resume_from: "infra delivery complete; next product work requires an owner-approved feature contract, while residual volume cleanup remains optional and separately authorized"
-updated_at: "2026-09-12T15:55:53-03:00"
+  - "Disposable-environment evidence above remains valid historical evidence only; it does not authorize repeating that method after the owner decision recorded on 2026-09-18."
+blocker: "Contract revision 2, plan revision 3 and the current disposable runners conflict with the owner decision that migrations must execute only on the designated infrastructure/VM."
+resume_from: "Use a separate feature-contract interaction to amend the infra contract and invalidate or replace disposable validation tactics before executing any Brain Core SQL; VM connection metadata is stored only in the ignored local .env.vm.local file."
+updated_at: "2026-09-18T17:45:35Z"

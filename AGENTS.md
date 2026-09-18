@@ -65,6 +65,14 @@ Documentação ou aprovação não prova implementação. Código, mock, teste u
 - Não adicione framework, transporte, autenticação, fila, embedding, índice ou serviço externo sem decisão registrada.
 - Não crie todos os diretórios da estrutura-alvo antecipadamente; crie cada componente quando seu primeiro trabalho for autorizado.
 
+## Migrations e execução de banco
+
+- SQLs e migrations são criados e versionados localmente no repositório.
+- Nunca sugerir, criar ou usar Docker, PostgreSQL ou outro banco temporário/descartável para testar, aplicar ou validar migrations.
+- A execução de SQL deve ocorrer somente na infraestrutura ou VM explicitamente indicada pelo owner.
+- Ausência de acesso, endpoint ou credencial é bloqueio; não autoriza uma alternativa local.
+- Endpoint, usuário, porta, credenciais e segredos da VM permanecem fora do Git.
+
 ## Handoff do orquestrador
 
 Ao concluir uma unidade, informe de forma compacta:

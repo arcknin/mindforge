@@ -4,6 +4,14 @@
 
 Compact closed-work entries managed by `orchestration-flow`. This file preserves outcomes, evidence, limitations, and residual risk; it does not preserve agent conversation or transient reasoning.
 
+## 2026-09-18 — Owner migration-execution boundary changed
+
+- Decision: SQLs and migrations continue to be authored and versioned locally, but execution and validation must occur only on infrastructure or a VM explicitly designated by the owner.
+- Prohibition: agents must not suggest, create or use temporary/disposable Docker, PostgreSQL or databases as substitute migration targets.
+- Security: endpoint, username, port and credentials remain outside Git in local ignored configuration; absence of access is a blocker, not authorization for a local fallback.
+- Contract impact: infra contract revision 2, plan revision 3 and disposable runners are now stale for future migration execution. Their prior evidence remains historical; changing them requires a separate contract amendment.
+- Resume point: amend the infra contract before executing Brain Core SQL or changing the validation runners. No SQL, SSH, VM, database or runtime action occurred in this registration.
+
 ## 2026-09-12 — Local structural reorganization
 
 - Outcome: the stack documentation moved from `stack/` to `docs/stack/`; the real Brain Engine project moved under `src/`; and the complete operational infrastructure surface moved to `src/brain-engine/features/infra/`.

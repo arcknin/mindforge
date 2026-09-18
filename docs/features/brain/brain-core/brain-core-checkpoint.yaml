@@ -1,0 +1,40 @@
+schema_version: 1
+managed_by: orchestration-flow
+feature: brain
+task: brain-core
+status: complete
+contract:
+  path: brain-core-contract.md
+  revision: 2
+workspace: null
+active_task: null
+active_repositories: []
+completed_summary:
+  - "Owner decisions for initialization, names, duplicate siblings, concurrency, rename identity, TDD and conditional local implementation authority were formalized in contract revision 2."
+  - "Sixteen behavioral ATDD scenarios were independently checked; the amendment ledger was corrected and the final conformity result was PASS."
+  - "Contract revision 2 is approved with tdd: yes and local implementation authority conditioned on the frozen plan."
+  - "Code plan revision 1 is complete and ready with sequential batches B01 deterministic Go core and B02 PostgreSQL persistence/integration."
+  - "B01 completed its TDD cycle: the initial package-level test failed on absent Brain Core types, then ATDD-01..ATDD-16 passed with the deterministic Engine, ports and test-only Store."
+  - "B02 completed its TDD cycle: the initial package-level test failed on absent PostgresStore symbols, then the isolated product migration, pgx adapter and accumulated static/unit/race checks passed."
+remaining: []
+evidence:
+  - docs/features/brain/brain-core/brain-core-contract.md
+  - docs/features/brain/brain-core/brain-core-plan.md
+  - "Independent ATDD conformity result: PASS."
+  - "git diff --check: exit 0 after contract closure."
+  - "Implementation dispatched to same-checkout task 01a0ad6e-50a8-7d02-8671-4e084ad5f23b with requested model gpt-5.6-sol and reasoning high."
+  - "B01 expected-red: cd src/brain-engine && go test ./features/brain/... exited 1 with undefined Principal, Brain, LayerID, Layer, Engine and Hierarchy."
+  - "B01 relevant-green verified by the orchestrator: go test -count=1 ./features/brain/...; go test -race -count=1 ./features/brain/...; go vet ./features/brain/...; gofmt -d returned empty; forbidden HTTP/PostgreSQL import search returned empty."
+  - "B02 expected-red: cd src/brain-engine && go test ./features/brain/... exited 1 with undefined PostgresStore and OpenPostgresStore."
+  - "B02 dependency resolution attempt: go mod tidy failed because proxy.golang.org could not be resolved inside the sandbox."
+  - "B02 dependency resolution completed after the exact elevated go mod tidy; pgx/v5 v5.7.4 is pinned and go.sum was generated."
+  - "B02 relevant-green verified by the orchestrator: verbose Brain Core tests passed with the PostgreSQL integration test explicitly skipped; race tests, go vet ./..., infra static/unit, gofmt -d, registry-empty check and git diff --check passed."
+limitations:
+  - "Contract validation is documentary/static only; no ATDD/TDD executable test, build, database, HTTP, runtime, migration, deployment or publication was executed."
+  - "Implementation authority is local only and does not authorize commit, push, deploy, production, executed migrations or remote actions."
+  - "B01 evidence is local/unit with a mutex-protected test Store; it does not prove PostgreSQL, authentication integration, HTTP or runtime."
+  - "No BRAIN_CORE_DATABASE_URL plus BRAIN_CORE_DATABASE_DISPOSABLE=1 target was available, so PostgreSQL behavior remains unverified by integration; no persistent migration was executed."
+  - "No endpoint, authentication integration, HTTP runtime, client, remote environment, deployment or publication was implemented or verified."
+blocker: null
+resume_from: "The authorized B01 and B02 plan is complete. Any PostgreSQL integration run, persistent migration procedure, review, commit, push, API work or deployment requires a separate explicit authorization."
+updated_at: 2026-09-17T03:58:41Z
