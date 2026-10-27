@@ -1,0 +1,35 @@
+{
+    "name": "Mindforge",
+    "short_name": "Mindforge",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#F7F6FA",
+    "theme_color": "#6255A5",
+    "description": "Client Web de desenvolvimento do Mindforge.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
