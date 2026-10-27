@@ -1,0 +1,632 @@
+---
+openapi: 3.0.3
+info:
+  title: Mindforge Documents
+  version: 1.0.0
+  description: Contrato aprovado pelo owner2026-10-12; implementação local e runtime
+    possuem evidência separada. PostgreSQL clock240h; purge oportunista conserva tombstone
+    sem texto. Client/sync posteriores.
+security:
+- GoTrueBearer: []
+paths:
+  "/v1/me/brain/documents":
+    post:
+      operationId: documents_create
+      description: Criar documento privado com UUID fornecido. ID já utilizado retorna409,
+        inclusive tombstone. Bearer GoTrue existente; owner sempre Auth. Ausente/alheio404.
+        Campos/query desconhecidos/repetidos ou null indevido rejeitados. Sem retry
+        cego após transporte/5xx. Sem corpo em GET. Sem scheduler/purge público.
+      parameters: []
+      responses:
+        '201':
+          description: Sucesso confirmado no Store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocumentEnvelope"
+        '400':
+          "$ref": "#/components/responses/Error400"
+        '401':
+          "$ref": "#/components/responses/Error401"
+        '404':
+          "$ref": "#/components/responses/Error404"
+        '405':
+          "$ref": "#/components/responses/Error405"
+        '409':
+          "$ref": "#/components/responses/Error409"
+        '413':
+          "$ref": "#/components/responses/Error413"
+        '415':
+          "$ref": "#/components/responses/Error415"
+        '422':
+          "$ref": "#/components/responses/Error422"
+        '500':
+          "$ref": "#/components/responses/Error500"
+        '503':
+          "$ref": "#/components/responses/Error503"
+      requestBody:
+        required: true
+        description: application/json; UTF-8; snapshot create/update até8MiB de transporte
+          (corpo Markdown até1MiB); trash/restore até1MiB.
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateDocument"
+  "/v1/me/brain/layers/{layer_id}/documents":
+    get:
+      operationId: documents_list
+      description: Listar metadata direta ou subárvore, UUID ascendente; sem snapshot
+        entre páginas. Bearer GoTrue existente; owner sempre Auth. Ausente/alheio404.
+        Campos/query desconhecidos/repetidos ou null indevido rejeitados. Sem retry
+        cego após transporte/5xx. Sem corpo em GET. Sem scheduler/purge público.
+      parameters:
+      - name: layer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - direct
+          - subtree
+          default: direct
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - active
+          - trash
+          default: active
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: after
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      responses:
+        '200':
+          description: Sucesso confirmado no Store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocumentPage"
+        '400':
+          "$ref": "#/components/responses/Error400"
+        '401':
+          "$ref": "#/components/responses/Error401"
+        '404':
+          "$ref": "#/components/responses/Error404"
+        '405':
+          "$ref": "#/components/responses/Error405"
+        '409':
+          "$ref": "#/components/responses/Error409"
+        '413':
+          "$ref": "#/components/responses/Error413"
+        '415':
+          "$ref": "#/components/responses/Error415"
+        '422':
+          "$ref": "#/components/responses/Error422"
+        '500':
+          "$ref": "#/components/responses/Error500"
+        '503':
+          "$ref": "#/components/responses/Error503"
+  "/v1/me/brain/documents/{document_id}":
+    get:
+      operationId: documents_get
+      description: Abrir ativo/lixeira válida; links projetam nomes atuais sem modificar
+        o corpo. Bearer GoTrue existente; owner sempre Auth. Ausente/alheio404. Campos/query
+        desconhecidos/repetidos ou null indevido rejeitados. Sem retry cego após transporte/5xx.
+        Sem corpo em GET. Sem scheduler/purge público.
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      responses:
+        '200':
+          description: Sucesso confirmado no Store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocumentEnvelope"
+        '400':
+          "$ref": "#/components/responses/Error400"
+        '401':
+          "$ref": "#/components/responses/Error401"
+        '404':
+          "$ref": "#/components/responses/Error404"
+        '405':
+          "$ref": "#/components/responses/Error405"
+        '409':
+          "$ref": "#/components/responses/Error409"
+        '413':
+          "$ref": "#/components/responses/Error413"
+        '415':
+          "$ref": "#/components/responses/Error415"
+        '422':
+          "$ref": "#/components/responses/Error422"
+        '500':
+          "$ref": "#/components/responses/Error500"
+        '503':
+          "$ref": "#/components/responses/Error503"
+    patch:
+      operationId: documents_update
+      description: Snapshot completo CAS para corpo/título/camada; conflito não sobrescreve.
+        Rename/move conservam ID. Bearer GoTrue existente; owner sempre Auth. Ausente/alheio404.
+        Campos/query desconhecidos/repetidos ou null indevido rejeitados. Sem retry
+        cego após transporte/5xx. Sem corpo em GET. Sem scheduler/purge público.
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      responses:
+        '200':
+          description: Sucesso confirmado no Store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocumentEnvelope"
+        '400':
+          "$ref": "#/components/responses/Error400"
+        '401':
+          "$ref": "#/components/responses/Error401"
+        '404':
+          "$ref": "#/components/responses/Error404"
+        '405':
+          "$ref": "#/components/responses/Error405"
+        '409':
+          "$ref": "#/components/responses/Error409"
+        '413':
+          "$ref": "#/components/responses/Error413"
+        '415':
+          "$ref": "#/components/responses/Error415"
+        '422':
+          "$ref": "#/components/responses/Error422"
+        '500':
+          "$ref": "#/components/responses/Error500"
+        '503':
+          "$ref": "#/components/responses/Error503"
+      requestBody:
+        required: true
+        description: application/json; UTF-8; snapshot create/update até8MiB de transporte
+          (corpo Markdown até1MiB); trash/restore até1MiB.
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UpdateDocument"
+  "/v1/me/brain/documents/{document_id}/trash":
+    post:
+      operationId: documents_trash
+      description: CAS lixeira240h PostgreSQL; repetir com versão corrente não renova
+        prazo. Bearer GoTrue existente; owner sempre Auth. Ausente/alheio404. Campos/query
+        desconhecidos/repetidos ou null indevido rejeitados. Sem retry cego após transporte/5xx.
+        Sem corpo em GET. Sem scheduler/purge público.
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      responses:
+        '200':
+          description: Sucesso confirmado no Store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocumentEnvelope"
+        '400':
+          "$ref": "#/components/responses/Error400"
+        '401':
+          "$ref": "#/components/responses/Error401"
+        '404':
+          "$ref": "#/components/responses/Error404"
+        '405':
+          "$ref": "#/components/responses/Error405"
+        '409':
+          "$ref": "#/components/responses/Error409"
+        '413':
+          "$ref": "#/components/responses/Error413"
+        '415':
+          "$ref": "#/components/responses/Error415"
+        '422':
+          "$ref": "#/components/responses/Error422"
+        '500':
+          "$ref": "#/components/responses/Error500"
+        '503':
+          "$ref": "#/components/responses/Error503"
+      requestBody:
+        required: true
+        description: application/json; UTF-8; snapshot create/update até8MiB de transporte
+          (corpo Markdown até1MiB); trash/restore até1MiB.
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/DocumentVersion"
+  "/v1/me/brain/documents/{document_id}/restore":
+    post:
+      operationId: documents_restore
+      description: CAS restore antes expiry; destino opcional default origem, sempre
+        layer próprio. Ativo409, expirado404. Bearer GoTrue existente; owner sempre
+        Auth. Ausente/alheio404. Campos/query desconhecidos/repetidos ou null indevido
+        rejeitados. Sem retry cego após transporte/5xx. Sem corpo em GET. Sem scheduler/purge
+        público.
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      responses:
+        '200':
+          description: Sucesso confirmado no Store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DocumentEnvelope"
+        '400':
+          "$ref": "#/components/responses/Error400"
+        '401':
+          "$ref": "#/components/responses/Error401"
+        '404':
+          "$ref": "#/components/responses/Error404"
+        '405':
+          "$ref": "#/components/responses/Error405"
+        '409':
+          "$ref": "#/components/responses/Error409"
+        '413':
+          "$ref": "#/components/responses/Error413"
+        '415':
+          "$ref": "#/components/responses/Error415"
+        '422':
+          "$ref": "#/components/responses/Error422"
+        '500':
+          "$ref": "#/components/responses/Error500"
+        '503':
+          "$ref": "#/components/responses/Error503"
+      requestBody:
+        required: true
+        description: application/json; UTF-8; snapshot create/update até8MiB de transporte
+          (corpo Markdown até1MiB); trash/restore até1MiB.
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RestoreDocument"
+components:
+  securitySchemes:
+    GoTrueBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: GoTrue access token
+  schemas:
+    DocumentMetadata:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - layer_id
+      - title
+      - version
+      - created_at
+      - updated_at
+      - deleted_at
+      - expires_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        layer_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        title:
+          type: string
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9223372036854775807
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+    DocumentLink:
+      type: object
+      additionalProperties: false
+      required:
+      - target_id
+      - title
+      - layer_id
+      - status
+      properties:
+        target_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        title:
+          type: string
+        layer_id:
+          type: string
+          description: Vazio quando missing; UUID quando disponível.
+        status:
+          type: string
+          enum:
+          - available
+          - trash
+          - missing
+    Document:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - layer_id
+      - title
+      - version
+      - created_at
+      - updated_at
+      - deleted_at
+      - expires_at
+      - markdown
+      - links
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        layer_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        title:
+          type: string
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9223372036854775807
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        markdown:
+          type: string
+          description: Markdown UTF-8 preservado; vazio permitido, sem NUL, até1048576
+            bytes. Tokens [[doc:UUID]] vinculam identidade; wikilinks por título permanecem
+            pendentes. Conteúdo não executa código.
+        links:
+          type: array
+          items:
+            "$ref": "#/components/schemas/DocumentLink"
+    DocumentEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+      - document
+      properties:
+        document:
+          "$ref": "#/components/schemas/Document"
+    DocumentPage:
+      type: object
+      additionalProperties: false
+      required:
+      - documents
+      - next_cursor
+      properties:
+        documents:
+          type: array
+          items:
+            "$ref": "#/components/schemas/DocumentMetadata"
+        next_cursor:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          nullable: true
+    CreateDocument:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - layer_id
+      - title
+      - markdown
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        layer_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        title:
+          type: string
+          description: Trim aplicado; resultado1..255 codepoints, sem caracteres de
+            controle. Títulos repetidos permitidos.
+        markdown:
+          type: string
+          description: Markdown UTF-8 preservado; vazio permitido, sem NUL, até1048576
+            bytes. Tokens [[doc:UUID]] vinculam identidade; wikilinks por título permanecem
+            pendentes. Conteúdo não executa código.
+    UpdateDocument:
+      type: object
+      additionalProperties: false
+      required:
+      - expected_version
+      - layer_id
+      - title
+      - markdown
+      properties:
+        expected_version:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9223372036854775807
+        layer_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        title:
+          type: string
+          description: Trim aplicado; resultado1..255 codepoints, sem caracteres de
+            controle. Títulos repetidos permitidos.
+        markdown:
+          type: string
+          description: Markdown UTF-8 preservado; vazio permitido, sem NUL, até1048576
+            bytes. Tokens [[doc:UUID]] vinculam identidade; wikilinks por título permanecem
+            pendentes. Conteúdo não executa código.
+    DocumentVersion:
+      type: object
+      additionalProperties: false
+      required:
+      - expected_version
+      properties:
+        expected_version:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9223372036854775807
+    RestoreDocument:
+      type: object
+      additionalProperties: false
+      required:
+      - expected_version
+      properties:
+        expected_version:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9223372036854775807
+        layer_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - request_id
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+        request_id:
+          type: string
+          minLength: 1
+  responses:
+    Error400:
+      description: invalid_request; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error401:
+      description: unauthenticated; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error404:
+      description: not_found; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error405:
+      description: method_not_allowed; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error409:
+      description: conflict; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error413:
+      description: payload_too_large; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error415:
+      description: unsupported_media_type; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error422:
+      description: invalid_document; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error500:
+      description: internal; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"
+    Error503:
+      description: auth_unavailable; detalhes internos não expostos.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/Error"

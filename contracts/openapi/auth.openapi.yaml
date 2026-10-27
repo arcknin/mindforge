@@ -1,0 +1,1316 @@
+---
+openapi: 3.0.3
+info:
+  title: Mindforge API Auth
+  version: 1.0.0
+  description: Owner approved 2026-10-13. API-only Google PKCE and session facade.
+    Spec docs/features/brain/api-auth/spec-01-main.md. Unknown routes denied; no admin/password/id_token/cookie
+    auth. All Auth errors use flat stable envelope, independent from Core/documents.
+    Query max8192 bytes; duplicate fields rejected; exact paths only. GoTrue upstream
+    fixed privately to develop; no user-selected destinations or redirects.
+servers:
+- url: "/"
+  description: Brain Engine origin; Web reverse proxy mounts under /api
+tags:
+- name: Auth
+paths:
+  "/v1/auth/authorize":
+    get:
+      operationId: auth_authorize
+      tags:
+      - Auth
+      description: No request body. Unknown/duplicate query keys are rejected. Exact
+        encoded path only. Google-only PKCE S256. Creates GoTrue FlowState; not idempotent,
+        no automatic retry. Final redirect_to exact server allowlist; scopes/invite/linking/aud
+        not accepted.
+      security: []
+      responses:
+        '400':
+          description: invalid_request; PKCE rejected is 400, not a successful login
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthenticated; definitive credential or identity rejection
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not_found
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '405':
+          description: method_not_allowed; Allow header
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '413':
+          description: payload_too_large
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '415':
+          description: unsupported_media_type
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: internal
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: auth_unavailable; transport, incompatible upstream, 5xx or
+            rate limit; may follow a consumed grant
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '302':
+          description: Validated redirect only; no access/refresh/provider tokens
+            in Location
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+            Location:
+              required: true
+              schema:
+                type: string
+                format: uri
+              description: Google authorization for authorize; exact allowlisted app
+                callback for callback
+      parameters:
+      - name: provider
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - google
+      - name: flow_type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - pkce
+      - name: redirect_to
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Exact configured callback URI, no wildcard/query/fragment/userinfo
+      - name: code_challenge
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: "^[A-Za-z0-9_-]{43}$"
+        description: Must decode to 32 bytes without padding
+      - name: code_challenge_method
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - s256
+  "/v1/auth/callback":
+    get:
+      operationId: auth_callback
+      tags:
+      - Auth
+      description: No request body. Unknown/duplicate query keys are rejected. Exact
+        encoded path only. Exactly one nonempty code or error and UUID state. GoTrue
+        validates flow state. Optional Google extras are discarded; iss, if present,
+        must equal https://accounts.google.com. Output error query sanitized; legacy
+        fragment removed; never replay automatically.
+      security: []
+      responses:
+        '400':
+          description: invalid_request; PKCE rejected is 400, not a successful login
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthenticated; definitive credential or identity rejection
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not_found
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '405':
+          description: method_not_allowed; Allow header
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '413':
+          description: payload_too_large
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '415':
+          description: unsupported_media_type
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: internal
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: auth_unavailable; transport, incompatible upstream, 5xx or
+            rate limit; may follow a consumed grant
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '302':
+          description: Validated redirect only; no access/refresh/provider tokens
+            in Location
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+            Location:
+              required: true
+              schema:
+                type: string
+                format: uri
+              description: Google authorization for authorize; exact allowlisted app
+                callback for callback
+      parameters:
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Canonical UUID
+      - name: code
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: error
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: error_description
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - name: error_uri
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - name: authuser
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - name: prompt
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - name: hd
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+      - name: iss
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - https://accounts.google.com
+  "/v1/auth/token":
+    post:
+      operationId: auth_token
+      tags:
+      - Auth
+      description: Body max16384 UTF8 bytes, strict JSON without duplicates/trailing
+        values. grant_type=pkce selects PkceRequest; refresh_token selects RefreshRequest.
+        No server retry. Credentials issued by GoTrue, eligibility verified against
+        fixed internal /user; sub/id must agree. Provider and id tokens removed. Response
+        loss may require re-login; not exactly once.
+      security: []
+      responses:
+        '400':
+          description: invalid_request; PKCE rejected is 400, not a successful login
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthenticated; definitive credential or identity rejection
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not_found
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '405':
+          description: method_not_allowed; Allow header
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '413':
+          description: payload_too_large
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '415':
+          description: unsupported_media_type
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: internal
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: auth_unavailable; transport, incompatible upstream, 5xx or
+            rate limit; may follow a consumed grant
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '200':
+          description: Validated minimal session; expires_at must agree with token
+            expiry
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Session"
+      parameters:
+      - name: grant_type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - pkce
+          - refresh_token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - "$ref": "#/components/schemas/PkceRequest"
+              - "$ref": "#/components/schemas/RefreshRequest"
+  "/v1/auth/user":
+    get:
+      operationId: auth_user
+      tags:
+      - Auth
+      description: No request body. Unknown/duplicate query keys are rejected. Exact
+        encoded path only. Read-only validation of eligible confirmed Google nonanonymous
+        authenticated user. Never bootstrap or implicitly refresh. Principal derived
+        from trusted GoTrue, not client claims.
+      security:
+      - BearerAuth: []
+      responses:
+        '400':
+          description: invalid_request; PKCE rejected is 400, not a successful login
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthenticated; definitive credential or identity rejection
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not_found
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '405':
+          description: method_not_allowed; Allow header
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '413':
+          description: payload_too_large
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '415':
+          description: unsupported_media_type
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: internal
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: auth_unavailable; transport, incompatible upstream, 5xx or
+            rate limit; may follow a consumed grant
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '200':
+          description: Minimal verified user projection
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/User"
+  "/v1/auth/logout":
+    post:
+      operationId: auth_logout
+      tags:
+      - Auth
+      description: Revoke only current GoTrue session; nonzero valid session_id in
+        verified bearer required, never fallback to global/others. Duplicate/unknown
+        query rejected. Body absent or empty JSON object; max16384 bytes. Repeated
+        logout may return401; existing access tokens may remain valid until expiry.
+        Client clears local auth even on remote failure, preserving documents.
+      security:
+      - BearerAuth: []
+      responses:
+        '400':
+          description: invalid_request; PKCE rejected is 400, not a successful login
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthenticated; definitive credential or identity rejection
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not_found
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '405':
+          description: method_not_allowed; Allow header
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '413':
+          description: payload_too_large
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '415':
+          description: unsupported_media_type
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: internal
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: auth_unavailable; transport, incompatible upstream, 5xx or
+            rate limit; may follow a consumed grant
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '204':
+          description: GoTrue confirmed current session logout; no body
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store, no-cache
+            Referrer-Policy:
+              schema:
+                type: string
+                enum:
+                - no-referrer
+            X-Content-Type-Options:
+              schema:
+                type: string
+                enum:
+                - nosniff
+      parameters:
+      - name: scope
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - local
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              maxProperties: 0
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: GoTrue develop access token
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - error_code
+      - message
+      - request_id
+      properties:
+        code:
+          type: string
+          minLength: 1
+        error_code:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+        request_id:
+          type: string
+          minLength: 1
+    User:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - aud
+      - role
+      - is_anonymous
+      - created_at
+      - email_confirmed_at
+      - app_metadata
+      - user_metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+        aud:
+          type: string
+          enum:
+          - authenticated
+        role:
+          type: string
+          enum:
+          - authenticated
+        is_anonymous:
+          type: boolean
+          enum:
+          - false
+        created_at:
+          type: string
+          format: date-time
+        email_confirmed_at:
+          type: string
+          format: date-time
+        email:
+          type: string
+          maxLength: 320
+        app_metadata:
+          type: object
+          additionalProperties: false
+          required:
+          - provider
+          - providers
+          properties:
+            provider:
+              type: string
+              enum:
+              - google
+            providers:
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                type: string
+                enum:
+                - google
+        user_metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            name:
+              type: string
+              maxLength: 255
+            full_name:
+              type: string
+              maxLength: 255
+    PkceRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - auth_code
+      - code_verifier
+      properties:
+        auth_code:
+          type: string
+          minLength: 1
+          maxLength: 4096
+        code_verifier:
+          type: string
+          minLength: 43
+          maxLength: 128
+          pattern: "^[A-Za-z0-9._~-]+$"
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+          maxLength: 8192
+    Session:
+      type: object
+      additionalProperties: false
+      required:
+      - access_token
+      - refresh_token
+      - token_type
+      - expires_in
+      - expires_at
+      - user
+      properties:
+        access_token:
+          type: string
+          minLength: 1
+        refresh_token:
+          type: string
+          minLength: 1
+          maxLength: 8192
+        token_type:
+          type: string
+          enum:
+          - bearer
+        expires_in:
+          type: integer
+          minimum: 1
+        expires_at:
+          type: integer
+          minimum: 1
+        user:
+          "$ref": "#/components/schemas/User"

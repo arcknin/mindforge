@@ -1,26 +1,746 @@
+---
 schema_version: 1
-
-# Esquema obrigatório para futuras entradas. `lifecycle` resume os três estados,
-# enquanto `gate` registra bloqueio sem criar um quinto estado de lifecycle.
 state_model:
   lifecycle:
-    - proposed
-    - approved
-    - implemented
-    - verified
+  - proposed
+  - approved
+  - implemented
+  - verified
   contract_status:
-    - proposed
-    - approved
+  - proposed
+  - approved
   implementation_status:
-    - pending
-    - implemented
+  - pending
+  - implemented
   runtime_status:
-    - pending
-    - verified
+  - pending
+  - verified
   gate:
-    - null
-    - needs_decision
+  -
+  - needs_decision
+proposal_spec: docs/features/brain/manual-online/spec-01-main.md
+proposal_profiles:
+  own_brain_auth:
+    status: approved
+    scheme: bearer
+    credential: Access token GoTrue do develop; não token Google ou chave administrativa.
+    verifier: GET /user no Auth develop interno fixo, sem redirects/cache positivo.
+    eligible_identity: Auth200, id autoritativo, aud/role authenticated, conta confirmada
+      e identidade Google; negar anônimo.
+    principal: user.id retornado pelo Auth verificador; nunca owner/email/target do
+      client.
+    failure: 401 antes do Engine se token/identidade rejeitado; 503 se Auth indisponível/incompatível.
+    logout_limit: Logout local não promete invalidação instantânea de access tokens
+      já emitidos.
+  own_brain_errors:
+    status: approved
+    envelope: "{error:{code,message},request_id}"
+    shared:
+      '400': invalid_request
+      '401': unauthenticated
+      '404': not_found
+      '405': method_not_allowed
+      '413': payload_too_large
+      '415': unsupported_media_type
+      '422': invalid_name
+      '500': internal
+      '503': auth_unavailable
+    nondisclosure: Recurso alheio e ausente retornam o mesmo404, sem IDs/nomes/versões
+      ou detalhes SQL/Auth.
+proposal_definitions:
+  root_ref:
+    type: object
+    additionalProperties: false
+    required:
+    - kind
+    - id
+    properties:
+      kind:
+        type: string
+        enum:
+        - root
+      id:
+        type: string
+        minLength: 1
+        description: ID opaco do root estrutural.
+  parent_ref:
+    type: object
+    additionalProperties: false
+    required:
+    - kind
+    - id
+    properties:
+      kind:
+        type: string
+        enum:
+        - root
+        - layer
+      id:
+        type: string
+        minLength: 1
+        description: ID opaco; recurso deve pertencer ao Brain do solicitante.
+  brain_summary:
+    type: object
+    additionalProperties: false
+    required:
+    - id
+    - root
+    properties:
+      id:
+        type: string
+        minLength: 1
+      root:
+        "$ref": "#/proposal_definitions/root_ref"
+  layer:
+    type: object
+    additionalProperties: false
+    required:
+    - id
+    - parent
+    - name
+    - version
+    properties:
+      id:
+        type: string
+        minLength: 1
+      parent:
+        "$ref": "#/proposal_definitions/parent_ref"
+      name:
+        type: string
+        minLength: 1
+        description: Nome normalizado pelo Engine, sem unicidade por nome.
+      version:
+        type: integer
+        minimum: 1
+        maximum: 9223372036854775807
+  brain_envelope:
+    type: object
+    additionalProperties: false
+    required:
+    - brain
+    properties:
+      brain:
+        "$ref": "#/proposal_definitions/brain_summary"
+  hierarchy_envelope:
+    type: object
+    additionalProperties: false
+    required:
+    - brain
+    - layers
+    properties:
+      brain:
+        "$ref": "#/proposal_definitions/brain_summary"
+      layers:
+        type: array
+        items:
+          "$ref": "#/proposal_definitions/layer"
+        description: Somente layers; root separado, zero layers iniciais; ordem não
+          expressa posição autoritativa.
+  layer_envelope:
+    type: object
+    additionalProperties: false
+    required:
+    - layer
+    properties:
+      layer:
+        "$ref": "#/proposal_definitions/layer"
+  create_layer_request:
+    type: object
+    additionalProperties: false
+    required:
+    - parent
+    - name
+    properties:
+      parent:
+        "$ref": "#/proposal_definitions/parent_ref"
+      name:
+        type: string
+        description: Vazio/whitespace é422; trim autoritativo no Engine.
+  rename_layer_request:
+    type: object
+    additionalProperties: false
+    required:
+    - name
+    - expected_version
+    properties:
+      name:
+        type: string
+        description: Vazio/whitespace é422; trim autoritativo no Engine.
+      expected_version:
+        type: integer
+        minimum: 1
+        maximum: 9223372036854775807
+endpoints:
+- id: brain_bootstrap
+  owner: brain
+  capability: BrainCore.Bootstrap
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate:
+  method: PUT
+  path: "/v1/me/brain"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Somente o próprio Brain; owner derivado do verificador.
+  request:
+    body: none
+    query: none
+    unknown_fields: rejected
+  response:
+    success_status: 200
+    body:
+      "$ref": "#/proposal_definitions/brain_envelope"
+  errors:
+    "$ref": "#/proposal_profiles/own_brain_errors"
+  effects: Inicializar ou recuperar Brain/root único do owner, sem camada visível.
+    Não migrar schema.
+  idempotency: Convergente por owner; repetir retorna o mesmo Brain/root. Sempre200,
+    sem distinguir criação/repetição.
+  producer: src/brain-engine/api/handler.go + auth/gotrue.go + cmd/brain-engine; local
+    implemented
+  consumers:
+  - 'src/mindforge-client/: Flutter native source + Web develop deployed; authenticated runtime pending'
+  evidence:
+    contract:
+    - docs/features/brain/manual-online/spec-01-main.md
+    - contracts/openapi/brain-core.openapi.yaml
+    implementation:
+    - src/brain-engine/api/handler.go
+    - src/brain-engine/auth/gotrue.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - src/mindforge-client/lib/main.dart
+    - docs/features/brain/manual-online/implementation-evidence.md
+    runtime: []
+  approval: owner_execution_request_20261008
+  openapi_contract: contracts/openapi/brain-core.openapi.yaml
+- id: brain_observe
+  owner: brain
+  capability: BrainCore.Observe
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate:
+  method: GET
+  path: "/v1/me/brain"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Somente hierarquia do próprio Brain; não aceitar owner/target.
+  request:
+    body: none
+    query: none
+    unknown_fields: rejected
+  response:
+    success_status: 200
+    body:
+      "$ref": "#/proposal_definitions/hierarchy_envelope"
+  errors:
+    "$ref": "#/proposal_profiles/own_brain_errors"
+  effects: none
+  idempotency: Read-only e seguro para repetir;404 se não inicializado; GET nunca
+    faz bootstrap.
+  producer: src/brain-engine/api/handler.go + auth/gotrue.go + cmd/brain-engine; local
+    implemented
+  consumers:
+  - 'src/mindforge-client/: Flutter native source + Web develop deployed; authenticated runtime pending'
+  evidence:
+    contract:
+    - docs/features/brain/manual-online/spec-01-main.md
+    - contracts/openapi/brain-core.openapi.yaml
+    implementation:
+    - src/brain-engine/api/handler.go
+    - src/brain-engine/auth/gotrue.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - src/mindforge-client/lib/main.dart
+    - docs/features/brain/manual-online/implementation-evidence.md
+    runtime: []
+  approval: owner_execution_request_20261008
+  openapi_contract: contracts/openapi/brain-core.openapi.yaml
+- id: brain_create_layer
+  owner: brain
+  capability: BrainCore.CreateLayer
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate:
+  method: POST
+  path: "/v1/me/brain/layers"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Parent root/layer deve pertencer ao Brain do owner; ausente/alheio404.
+  request:
+    content_type: application/json
+    query: none
+    body:
+      "$ref": "#/proposal_definitions/create_layer_request"
+    unknown_fields: rejected
+  response:
+    success_status: 201
+    body:
+      "$ref": "#/proposal_definitions/layer_envelope"
+  errors:
+    "$ref": "#/proposal_profiles/own_brain_errors"
+  effects: Uma nova camada no parent indicado, ID próprio e versão1; nesting livre
+    e nomes repetidos preservados.
+  idempotency: Não idempotente; sem chave de deduplicação. Não repetir após timeout/transporte/5xx.401
+    definitivo pré-Engine permite refresh/reenvio limitado.
+  producer: src/brain-engine/api/handler.go + auth/gotrue.go + cmd/brain-engine; local
+    implemented
+  consumers:
+  - 'src/mindforge-client/: Flutter native source + Web develop deployed; authenticated runtime pending'
+  evidence:
+    contract:
+    - docs/features/brain/manual-online/spec-01-main.md
+    - contracts/openapi/brain-core.openapi.yaml
+    implementation:
+    - src/brain-engine/api/handler.go
+    - src/brain-engine/auth/gotrue.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - src/mindforge-client/lib/main.dart
+    - docs/features/brain/manual-online/implementation-evidence.md
+    runtime: []
+  approval: owner_execution_request_20261008
+  openapi_contract: contracts/openapi/brain-core.openapi.yaml
+- id: brain_rename_layer
+  owner: brain
+  capability: BrainCore.RenameLayer
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate:
+  method: PATCH
+  path: "/v1/me/brain/layers/{layer_id}"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Camada deve pertencer ao próprio Brain; ausente/alheia404. Root não
+    é layer renomeável.
+  request:
+    content_type: application/json
+    query: none
+    path_parameters:
+      layer_id:
+        type: string
+        minLength: 1
+        description: ID opaco da camada.
+    body:
+      "$ref": "#/proposal_definitions/rename_layer_request"
+    unknown_fields: rejected
+  response:
+    success_status: 200
+    body:
+      "$ref": "#/proposal_definitions/layer_envelope"
+  errors:
+    profile:
+      "$ref": "#/proposal_profiles/own_brain_errors"
+    operation_specific:
+      '409': conflict
+  effects: CAS altera nome/versão; preserva ID, parent e filhos.
+  idempotency: Não repetir cegamente. Versão stale409; timeout/conflito exige releitura
+    e decisão antes de reaplicar.
+  producer: src/brain-engine/api/handler.go + auth/gotrue.go + cmd/brain-engine; local
+    implemented
+  consumers:
+  - 'src/mindforge-client/: Flutter native source + Web develop deployed; authenticated runtime pending'
+  evidence:
+    contract:
+    - docs/features/brain/manual-online/spec-01-main.md
+    - contracts/openapi/brain-core.openapi.yaml
+    implementation:
+    - src/brain-engine/api/handler.go
+    - src/brain-engine/auth/gotrue.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - src/mindforge-client/lib/main.dart
+    - docs/features/brain/manual-online/implementation-evidence.md
+    runtime: []
+  approval: owner_execution_request_20261008
+  openapi_contract: contracts/openapi/brain-core.openapi.yaml
 
-# O registro começa vazio de propósito. Capabilities e exemplos arquiteturais
-# não são endpoints até que exista uma proposta explícita e aprovada pelo owner.
-endpoints: []
+- id: documents_create
+  owner: documents
+  capability: Documents.Create
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: POST
+  path: "/v1/me/brain/documents"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Brain/layer/documento e destinos dos links pertencem ao principal Auth; alheio/ausente404.
+  request: "id,layer_id,title,markdown"
+  response: "201 document"
+  errors: "400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;409 conflict;413 payload_too_large;415 unsupported_media_type;422 invalid_document;500 internal;503 auth_unavailable"
+  effects: "Create privado; UUID fornecido, ID existente409"
+  idempotency: Sem retry cego de mutacao apos transporte/5xx; reads repetiveis; trash repetido na versao corrente nao renova prazo.
+  producer: src/brain-engine/features/documents + api/documents.go + cmd/brain-engine (implementado localmente)
+  consumers:
+  - src/mindforge-client/lib/documents (Android native local implementation, runtime pending)
+  - src/mindforge-client/lib/ui/workspace (shared adaptive presentation)
+  operational_evidence:
+  - docs/features/brain/android-workspace/vm-runtime-evidence.md
+  evidence:
+    contract: [docs/features/brain/layer-content/spec-02-backend.md]
+    implementation:
+    - src/brain-engine/features/documents
+    - src/brain-engine/api/documents.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - docs/features/brain/layer-content/implementation-evidence.md
+    runtime: []
+  openapi_contract: contracts/openapi/documents.openapi.yaml
+  approval: owner_http_approval_20261012
+
+# API-only Auth: cinco rotas aprovadas pelo owner em2026-10-13; runtime independente.
+- id: auth_authorize
+  owner: auth
+  capability: Auth.GoogleAuthorize
+  lifecycle: verified
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: verified
+  gate: null
+  method: GET
+  path: /v1/auth/authorize
+  authentication: Publico; tentativa Google PKCE, sem bearer obrigatorio.
+  authorization: Google-only; redirect final em allowlist exata do servidor; upstream Auth develop fixo.
+  request:
+    body: none
+    query:
+      provider: {type: string, enum: [google], required: true}
+      flow_type: {type: string, enum: [pkce], required: true}
+      redirect_to: {type: string, required: true, validation: exact_server_allowlist}
+      code_challenge: {type: string, required: true, validation: base64url_43_chars_32_bytes_no_padding}
+      code_challenge_method: {type: string, enum: [s256], required: true}
+    unknown_fields: rejected
+    duplicate_fields: rejected
+  response: {success_status: 302, body: none, location: validated_HTTPS_Google_authorize_with_API_callback}
+  errors: '400 invalid_request;404 not_found;405 method_not_allowed;413 payload_too_large;500 internal;503 auth_unavailable'
+  effects: Cria FlowState Google PKCE no GoTrue; nao cria Brain nem sessao API propria.
+  idempotency: Nao idempotente; sem retry automatico; nova tentativa por acao explicita.
+  producer: src/brain-engine/auth/facade.go + api/auth.go + cmd/brain-engine (implemented local)
+  consumers: [src/mindforge-client/lib/auth]
+  operational_evidence: [docs/features/brain/api-auth/vm-runtime-evidence.md]
+  evidence:
+    contract: [docs/features/brain/api-auth/spec-01-main.md]
+    implementation: [src/brain-engine/auth/facade.go, src/brain-engine/api/auth.go, src/mindforge-client/lib/auth/gotrue_sdk_port.dart, docs/features/brain/api-auth/implementation-evidence.md]
+    runtime: [docs/features/brain/api-auth/vm-runtime-evidence.md]
+  approval: owner_api_auth_spec_and_five_routes_20261013
+  openapi_contract: contracts/openapi/auth.openapi.yaml
+
+- id: auth_callback
+  owner: auth
+  capability: Auth.GoogleCallback
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: GET
+  path: /v1/auth/callback
+  authentication: Publico; state/fluxo Google validado pelo GoTrue interno, sem bearer.
+  authorization: Redirect final somente allowlist exata; state nao e identidade do principal.
+  request:
+    body: none
+    query:
+      state: {type: string, required: true, validation: canonical_UUID}
+      code: {type: string, maxLength: 4096, required: xor_error}
+      error: {type: string, required: xor_code}
+      optional_google_fields: [error_description, error_uri, scope, authuser, prompt, hd, iss]
+      issuer_when_present: https://accounts.google.com
+    unknown_fields: rejected
+    duplicate_fields: rejected
+    forwarding: state_and_code_or_state_and_error_only_with_bounded_description
+  response: {success_status: 302, body: none, location: exact_final_callback_with_code_or_sanitized_error_query_only}
+  errors: '400 invalid_request;404 not_found;405 method_not_allowed;413 payload_too_large;500 internal;503 auth_unavailable'
+  effects: GoTrue conclui OAuth Google e emite codigo PKCE; nao devolver tokens em URL.
+  idempotency: Codigo/state consumiveis; sem retry automatico apos resultado incerto.
+  producer: src/brain-engine/auth/facade.go + api/auth.go + cmd/brain-engine (implemented local)
+  consumers: [Google_OAuth_browser, src/mindforge-client/lib/auth]
+  operational_evidence: [docs/features/brain/api-auth/vm-runtime-evidence.md]
+  evidence:
+    contract: [docs/features/brain/api-auth/spec-01-main.md]
+    implementation: [src/brain-engine/auth/facade.go, src/brain-engine/api/auth.go, src/mindforge-client/lib/auth/gotrue_sdk_port.dart, docs/features/brain/api-auth/implementation-evidence.md]
+    runtime: []
+  approval: owner_api_auth_spec_and_five_routes_20261013
+  openapi_contract: contracts/openapi/auth.openapi.yaml
+
+- id: auth_token
+  owner: auth
+  capability: Auth.ExchangeOrRefresh
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: POST
+  path: /v1/auth/token
+  authentication: Codigo+verifier PKCE ou refresh token no body; sem bearer obrigatorio.
+  authorization: GoTrue develop valida grant; API verifica novo access token e elegibilidade antes de devolver sessao.
+  request:
+    content_type: application/json
+    max_body_bytes: 16384
+    query:
+      grant_type: {type: string, enum: [pkce, refresh_token], required: true}
+    body_union:
+      pkce: {required: [auth_code, code_verifier], validation: code_max4096_verifier_RFC7636_43to128}
+      refresh_token: {required: [refresh_token], validation: nonempty_max8192_bytes}
+    unknown_fields: rejected
+    duplicate_fields: rejected
+  response:
+    success_status: 200
+    body: 'access_token,refresh_token,token_type=bearer,expires_in,expires_at,user; DTO minimo definido na spec; sem provider_token/provider_refresh_token/id_token ou metadata bruta'
+  errors: '400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;413 payload_too_large;415 unsupported_media_type;500 internal;503 auth_unavailable'
+  effects: Emissao/rotacao no GoTrue; API nao reassina JWT nem persiste sessao propria.
+  idempotency: Nao idempotente; nenhum retry upstream pela API. SDK tem refresh single-flight/retry transitorio limitado; resultado incerto pode exigir novo login.
+  producer: src/brain-engine/auth/facade.go + api/auth.go + cmd/brain-engine (implemented local)
+  consumers: [src/mindforge-client/lib/auth]
+  operational_evidence: [docs/features/brain/api-auth/vm-runtime-evidence.md]
+  evidence:
+    contract: [docs/features/brain/api-auth/spec-01-main.md]
+    implementation: [src/brain-engine/auth/facade.go, src/brain-engine/api/auth.go, src/mindforge-client/lib/auth/gotrue_sdk_port.dart, docs/features/brain/api-auth/implementation-evidence.md]
+    runtime: []
+  approval: owner_api_auth_spec_and_five_routes_20261013
+  openapi_contract: contracts/openapi/auth.openapi.yaml
+
+- id: auth_user
+  owner: auth
+  capability: Auth.ValidateSession
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: GET
+  path: /v1/auth/user
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Somente usuario do bearer elegivel verificado no GoTrue develop fixo.
+  request: {body: none, query: none, unknown_fields: rejected}
+  response:
+    success_status: 200
+    body: 'id,aud,role,is_anonymous,created_at,email_confirmed_at,app_metadata Google projetada,user_metadata name/full_name limitados,email opcional; spec define DTO exato'
+  errors: '400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;413 payload_too_large;500 internal;503 auth_unavailable'
+  effects: none
+  idempotency: Read-only repetivel; nao faz bootstrap ou refresh implicito.
+  producer: src/brain-engine/auth/facade.go + api/auth.go + cmd/brain-engine (implemented local)
+  consumers: [src/mindforge-client/lib/auth]
+  operational_evidence: [docs/features/brain/api-auth/vm-runtime-evidence.md]
+  evidence:
+    contract: [docs/features/brain/api-auth/spec-01-main.md]
+    implementation: [src/brain-engine/auth/facade.go, src/brain-engine/api/auth.go, src/mindforge-client/lib/auth/gotrue_sdk_port.dart, docs/features/brain/api-auth/implementation-evidence.md]
+    runtime: []
+  approval: owner_api_auth_spec_and_five_routes_20261013
+  openapi_contract: contracts/openapi/auth.openapi.yaml
+
+- id: auth_logout
+  owner: auth
+  capability: Auth.LogoutCurrentSession
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: POST
+  path: /v1/auth/logout
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Exigir session_id UUID nao nulo no bearer aceito pelo GoTrue; impedir fallback para logout global.
+  request:
+    content_type: application/json_when_body_present
+    query:
+      scope: {type: string, enum: [local], required: true}
+    body: absent_or_empty_object
+    unknown_fields: rejected
+    duplicate_fields: rejected
+  response: {success_status: 204, body: none}
+  errors: '400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;413 payload_too_large;415 unsupported_media_type;500 internal;503 auth_unavailable'
+  effects: GoTrue revoga somente sessao atual; nao apaga conta/Brain/documentos nem promete invalidacao instantanea de access tokens.
+  idempotency: Repetir pode retornar401; client limpa login local mesmo se revogacao remota falhar, sem declarar sucesso remoto.
+  producer: src/brain-engine/auth/facade.go + api/auth.go + cmd/brain-engine (implemented local)
+  consumers: [src/mindforge-client/lib/auth]
+  operational_evidence: [docs/features/brain/api-auth/vm-runtime-evidence.md]
+  evidence:
+    contract: [docs/features/brain/api-auth/spec-01-main.md]
+    implementation: [src/brain-engine/auth/facade.go, src/brain-engine/api/auth.go, src/mindforge-client/lib/auth/gotrue_sdk_port.dart, docs/features/brain/api-auth/implementation-evidence.md]
+    runtime: []
+  approval: owner_api_auth_spec_and_five_routes_20261013
+  openapi_contract: contracts/openapi/auth.openapi.yaml
+
+- id: documents_list
+  owner: documents
+  capability: Documents.List
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: GET
+  path: "/v1/me/brain/layers/{layer_id}/documents"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Brain/layer/documento e destinos dos links pertencem ao principal Auth; alheio/ausente404.
+  request: "query scope=direct|subtree,state=active|trash,limit=1..100,after=UUID"
+  response: "200 documents,next_cursor"
+  errors: "400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;409 conflict;413 payload_too_large;415 unsupported_media_type;422 invalid_document;500 internal;503 auth_unavailable"
+  effects: "Consulta metadata direta/subarvore sem corpo; UUID asc; sem snapshot"
+  idempotency: Sem retry cego de mutacao apos transporte/5xx; reads repetiveis; trash repetido na versao corrente nao renova prazo.
+  producer: src/brain-engine/features/documents + api/documents.go + cmd/brain-engine (implementado localmente)
+  consumers:
+  - src/mindforge-client/lib/documents (Android native local implementation, runtime pending)
+  - src/mindforge-client/lib/ui/workspace (shared adaptive presentation)
+  operational_evidence:
+  - docs/features/brain/android-workspace/vm-runtime-evidence.md
+  evidence:
+    contract: [docs/features/brain/layer-content/spec-02-backend.md]
+    implementation:
+    - src/brain-engine/features/documents
+    - src/brain-engine/api/documents.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - docs/features/brain/layer-content/implementation-evidence.md
+    runtime: []
+  openapi_contract: contracts/openapi/documents.openapi.yaml
+  approval: owner_http_approval_20261012
+
+- id: documents_get
+  owner: documents
+  capability: Documents.Get
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: GET
+  path: "/v1/me/brain/documents/{document_id}"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Brain/layer/documento e destinos dos links pertencem ao principal Auth; alheio/ausente404.
+  request: "sem corpo/query"
+  response: "200 document"
+  errors: "400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;409 conflict;413 payload_too_large;415 unsupported_media_type;422 invalid_document;500 internal;503 auth_unavailable"
+  effects: "Ativo ou lixeira valida; expirado404"
+  idempotency: Sem retry cego de mutacao apos transporte/5xx; reads repetiveis; trash repetido na versao corrente nao renova prazo.
+  producer: src/brain-engine/features/documents + api/documents.go + cmd/brain-engine (implementado localmente)
+  consumers:
+  - src/mindforge-client/lib/documents (Android native local implementation, runtime pending)
+  - src/mindforge-client/lib/ui/workspace (shared adaptive presentation)
+  operational_evidence:
+  - docs/features/brain/android-workspace/vm-runtime-evidence.md
+  evidence:
+    contract: [docs/features/brain/layer-content/spec-02-backend.md]
+    implementation:
+    - src/brain-engine/features/documents
+    - src/brain-engine/api/documents.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - docs/features/brain/layer-content/implementation-evidence.md
+    runtime: []
+  openapi_contract: contracts/openapi/documents.openapi.yaml
+  approval: owner_http_approval_20261012
+
+- id: documents_update
+  owner: documents
+  capability: Documents.Update
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: PATCH
+  path: "/v1/me/brain/documents/{document_id}"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Brain/layer/documento e destinos dos links pertencem ao principal Auth; alheio/ausente404.
+  request: "expected_version,layer_id,title,markdown"
+  response: "200 document"
+  errors: "400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;409 conflict;413 payload_too_large;415 unsupported_media_type;422 invalid_document;500 internal;503 auth_unavailable"
+  effects: "Snapshot completo CAS; rename/move conservam ID"
+  idempotency: Sem retry cego de mutacao apos transporte/5xx; reads repetiveis; trash repetido na versao corrente nao renova prazo.
+  producer: src/brain-engine/features/documents + api/documents.go + cmd/brain-engine (implementado localmente)
+  consumers:
+  - src/mindforge-client/lib/documents (Android native local implementation, runtime pending)
+  - src/mindforge-client/lib/ui/workspace (shared adaptive presentation)
+  operational_evidence:
+  - docs/features/brain/android-workspace/vm-runtime-evidence.md
+  evidence:
+    contract: [docs/features/brain/layer-content/spec-02-backend.md]
+    implementation:
+    - src/brain-engine/features/documents
+    - src/brain-engine/api/documents.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - docs/features/brain/layer-content/implementation-evidence.md
+    runtime: []
+  openapi_contract: contracts/openapi/documents.openapi.yaml
+  approval: owner_http_approval_20261012
+
+- id: documents_trash
+  owner: documents
+  capability: Documents.Trash
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: POST
+  path: "/v1/me/brain/documents/{document_id}/trash"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Brain/layer/documento e destinos dos links pertencem ao principal Auth; alheio/ausente404.
+  request: "expected_version"
+  response: "200 document"
+  errors: "400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;409 conflict;413 payload_too_large;415 unsupported_media_type;422 invalid_document;500 internal;503 auth_unavailable"
+  effects: "CAS lixeira240h pelo clock PG; re-delete nao renova prazo"
+  idempotency: Sem retry cego de mutacao apos transporte/5xx; reads repetiveis; trash repetido na versao corrente nao renova prazo.
+  producer: src/brain-engine/features/documents + api/documents.go + cmd/brain-engine (implementado localmente)
+  consumers:
+  - src/mindforge-client/lib/documents (Android native local implementation, runtime pending)
+  - src/mindforge-client/lib/ui/workspace (shared adaptive presentation)
+  operational_evidence:
+  - docs/features/brain/android-workspace/vm-runtime-evidence.md
+  evidence:
+    contract: [docs/features/brain/layer-content/spec-02-backend.md]
+    implementation:
+    - src/brain-engine/features/documents
+    - src/brain-engine/api/documents.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - docs/features/brain/layer-content/implementation-evidence.md
+    runtime: []
+  openapi_contract: contracts/openapi/documents.openapi.yaml
+  approval: owner_http_approval_20261012
+
+- id: documents_restore
+  owner: documents
+  capability: Documents.Restore
+  lifecycle: implemented
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+  gate: null
+  method: POST
+  path: "/v1/me/brain/documents/{document_id}/restore"
+  authentication:
+    "$ref": "#/proposal_profiles/own_brain_auth"
+  authorization: Brain/layer/documento e destinos dos links pertencem ao principal Auth; alheio/ausente404.
+  request: "expected_version,layer_id opcional"
+  response: "200 document"
+  errors: "400 invalid_request;401 unauthenticated;404 not_found;405 method_not_allowed;409 conflict;413 payload_too_large;415 unsupported_media_type;422 invalid_document;500 internal;503 auth_unavailable"
+  effects: "CAS restore antes expiry, destino proprio valido"
+  idempotency: Sem retry cego de mutacao apos transporte/5xx; reads repetiveis; trash repetido na versao corrente nao renova prazo.
+  producer: src/brain-engine/features/documents + api/documents.go + cmd/brain-engine (implementado localmente)
+  consumers:
+  - src/mindforge-client/lib/documents (Android native local implementation, runtime pending)
+  - src/mindforge-client/lib/ui/workspace (shared adaptive presentation)
+  operational_evidence:
+  - docs/features/brain/android-workspace/vm-runtime-evidence.md
+  evidence:
+    contract: [docs/features/brain/layer-content/spec-02-backend.md]
+    implementation:
+    - src/brain-engine/features/documents
+    - src/brain-engine/api/documents.go
+    - src/brain-engine/cmd/brain-engine/main.go
+    - docs/features/brain/layer-content/implementation-evidence.md
+    runtime: []
+  openapi_contract: contracts/openapi/documents.openapi.yaml
+  approval: owner_http_approval_20261012
