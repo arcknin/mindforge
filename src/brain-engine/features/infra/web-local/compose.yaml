@@ -1,0 +1,42 @@
+name: mindforge-web-develop
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mindforge/web-develop:local
+    platform: linux/amd64
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # Bind 80, drop worker identity, and prepare nginx temporary directories.
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+      - CHOWN
+    tmpfs:
+      - /var/cache/nginx:rw,noexec,nosuid,size=16m
+      - /var/run:rw,noexec,nosuid,size=1m
+      - /tmp:rw,noexec,nosuid,size=16m
+    ports:
+      - "127.0.0.1:18088:80"
+    networks:
+      - infra
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1/login/callback || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  infra:
+    external: true
+    name: infra_default

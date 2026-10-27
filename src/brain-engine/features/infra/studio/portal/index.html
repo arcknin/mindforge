@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Mindforge | Acesso aos bancos</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0b1018;
+      color: #edf2f7;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 18rem;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 12% 8%, #17343a 0, transparent 36rem),
+        radial-gradient(ellipse at 88% 92%, #202746 0, transparent 34rem),
+        #0b1018;
+    }
+
+    main {
+      width: min(100% - 2rem, 58rem);
+      margin: 0 auto;
+      padding: clamp(3rem, 9vw, 7rem) 0;
+    }
+
+    .eyebrow {
+      color: #72d4b0;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 14ch;
+      margin: 1rem 0;
+      font-size: clamp(2.3rem, 7vw, 4.7rem);
+      letter-spacing: -.055em;
+      line-height: .98;
+    }
+
+    .intro {
+      max-width: 42rem;
+      color: #aebac9;
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    nav { margin-top: 3rem; }
+
+    ul {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+      gap: 1rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li { min-width: 0; }
+
+    a {
+      display: flex;
+      min-height: 10rem;
+      height: 100%;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: 1.4rem;
+      border: 1px solid #344353;
+      border-radius: 1rem;
+      background: rgb(18 27 38 / 88%);
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+    }
+
+    a:hover {
+      transform: translateY(-2px);
+      border-color: #72d4b0;
+      background: #162530;
+    }
+
+    a:focus-visible {
+      outline: 3px solid #72d4b0;
+      outline-offset: 4px;
+    }
+
+    .name { font-size: 1.25rem; font-weight: 700; }
+    .detail { color: #aebac9; font-size: .9rem; line-height: 1.5; }
+    .arrow { color: #72d4b0; font-size: 1.2rem; }
+
+    .production { border-color: #776746; }
+    .production .tag {
+      align-self: flex-start;
+      padding: .3rem .55rem;
+      border: 1px solid #9e8452;
+      border-radius: 999px;
+      color: #e8c984;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+    }
+
+    .note {
+      margin-top: 2rem;
+      padding-left: 1rem;
+      border-left: 2px solid #72d4b0;
+      color: #aebac9;
+      font-size: .9rem;
+      line-height: 1.6;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Mindforge · ambiente privado</p>
+    <h1>Acesso aos bancos</h1>
+    <p class="intro">
+      Escolha uma instância pelo nome. Cada Studio abre uma conexão administrativa
+      para um único banco.
+    </p>
+
+    <nav aria-label="Instâncias de banco de dados">
+      <ul>
+        <li>
+          <a href="http://nsr.db.home.arpa">
+            <span class="name">NSR</span>
+            <span class="detail">Banco e ferramentas administrativas do projeto NSR.</span>
+            <span class="arrow" aria-hidden="true">Abrir ↗</span>
+          </a>
+        </li>
+        <li>
+          <a class="production" href="http://mindforge.db.home.arpa">
+            <span class="tag">PRODUÇÃO · ADMIN</span>
+            <span class="name">Mindforge Main</span>
+            <span class="detail">Acesso administrativo ao banco principal.</span>
+            <span class="arrow" aria-hidden="true">Abrir ↗</span>
+          </a>
+        </li>
+        <li>
+          <a href="http://develop.db.home.arpa">
+            <span class="name">Mindforge Develop</span>
+            <span class="detail">Ambiente de desenvolvimento. Versione mudanças de schema pelo fluxo de migrations.</span>
+            <span class="arrow" aria-hidden="true">Abrir ↗</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <p class="note">
+      O acesso exige autenticação administrativa. SQL executado manualmente em
+      produção pode alterar dados e schema fora do catálogo de migrations.
+    </p>
+  </main>
+</body>
+</html>

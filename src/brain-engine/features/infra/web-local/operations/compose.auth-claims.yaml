@@ -1,0 +1,6 @@
+# Apply after the existing Google/Web overlays; develop only.
+services:
+  auth-develop:
+    environment:
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated

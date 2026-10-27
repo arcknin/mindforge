@@ -1,0 +1,83 @@
+server {
+    listen 80;
+    server_name db.home.arpa;
+
+    auth_basic "Mindforge database portal";
+    auth_basic_user_file @AUTH_FILE@;
+
+    root @PORTAL_ROOT@;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+server {
+    listen 80;
+    server_name nsr.db.home.arpa;
+
+    auth_basic "NSR and database administration";
+    auth_basic_user_file @AUTH_FILE@;
+
+    location / {
+        proxy_pass http://127.0.0.1:18084;
+        proxy_http_version 1.1;
+        proxy_set_header Host db.home.arpa;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+}
+
+server {
+    listen 80;
+    server_name mindforge.db.home.arpa;
+
+    auth_basic "Mindforge production administration";
+    auth_basic_user_file @AUTH_FILE@;
+
+    location / {
+        proxy_pass http://127.0.0.1:18085;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization "";
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+}
+
+server {
+    listen 80;
+    server_name develop.db.home.arpa;
+
+    auth_basic "Mindforge development administration";
+    auth_basic_user_file @AUTH_FILE@;
+
+    location / {
+        proxy_pass http://127.0.0.1:18086;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization "";
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+}

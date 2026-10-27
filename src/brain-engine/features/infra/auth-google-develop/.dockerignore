@@ -1,0 +1,8 @@
+.env
+.env.*
+*.env
+*.env.*
+*.private
+source-manifest.json
+README.md
+scripts/

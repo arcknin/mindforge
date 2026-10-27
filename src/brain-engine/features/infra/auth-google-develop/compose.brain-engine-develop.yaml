@@ -1,0 +1,25 @@
+name: mindforge-brain-engine-develop
+
+services:
+  brain-engine-develop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mindforge/brain-engine:manual-online
+    restart: unless-stopped
+    environment:
+      MINDFORGE_ENVIRONMENT: ${MINDFORGE_ENVIRONMENT:?}
+      MINDFORGE_DATABASE_URL: ${MINDFORGE_DATABASE_URL:?}
+      MINDFORGE_AUTH_USER_URL: ${MINDFORGE_AUTH_USER_URL:?}
+      MINDFORGE_AUTH_CALLBACK_URL: ${MINDFORGE_AUTH_CALLBACK_URL:?}
+      MINDFORGE_AUTH_REDIRECT_URLS: ${MINDFORGE_AUTH_REDIRECT_URLS:?}
+      MINDFORGE_LISTEN_ADDR: ${MINDFORGE_LISTEN_ADDR:?}
+    ports:
+      - 127.0.0.1:18087:8080
+    networks:
+      - infra
+
+networks:
+  infra:
+    external: true
+    name: infra_default
