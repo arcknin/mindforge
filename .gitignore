@@ -40,10 +40,18 @@ pids/
 *.pid
 *.pidfile
 backups/
-acceptance-artifacts/
 tmp/
 
-# Known checkout residues
+# Python test and helper caches
+__pycache__/
+*.py[cod]
+
+# Generated infrastructure operator and sanitized operational evidence
+src/brain-engine/features/infra/tools/mindforge-infra
+*.manifest.json
+*.evidence.json
+promotion-evidence/
+restore-evidence/
+
+# Known checkout residue
 Home.md
-mf-backup-test/
-mf-accept-opstest1234-restore/

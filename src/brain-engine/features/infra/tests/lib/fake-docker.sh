@@ -24,7 +24,7 @@ if [[ "${1:-}" == 'volume' && "${2:-}" == 'inspect' ]]; then
   fi
   exit 1
 fi
-if [[ " $* " == *' ps -q db '* || " $* " == *' ps -q auth '* || " $* " == *' ps -aq '* ]]; then
+if [[ " $* " == *' ps -q db '* || " $* " == *' ps -q auth '* || " $* " == *' ps -q auth-develop '* || " $* " == *' ps -q auth-main '* || " $* " == *' ps -aq '* ]]; then
   if [[ "${FAKE_DOCKER_EMPTY_PS:-}" != '1' ]]; then
     printf 'fake-container-id\n'
   fi

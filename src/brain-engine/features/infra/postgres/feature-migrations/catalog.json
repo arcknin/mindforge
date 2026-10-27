@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "migrations": [
+    {
+      "id": "0006",
+      "name": "brain_core",
+      "feature": "brain",
+      "source": "src/brain-engine/features/brain/migrations/0001_brain_core.sql",
+      "sha256": "1c8e0e960f728662062bd73bf791bce7b6cee092cff099375fe4455660f0f7b9",
+      "preflight": "src/brain-engine/features/brain/migrations/0001_brain_core.preflight.sql",
+      "preflight_sha256": "687cbce54adf1773023f6068820a5913cfc0d32203e0c17805356e6b4085fb27",
+      "verify": "src/brain-engine/features/brain/migrations/0001_brain_core.verify.sql",
+      "verify_sha256": "bad3bed179e7637d8a327f91746f8eaec010744223ee60a7b676014f063b68bd"
+    },
+    {
+      "id": "0007",
+      "name": "documents",
+      "feature": "documents",
+      "source": "src/brain-engine/features/documents/migrations/0001_documents.sql",
+      "sha256": "37c0378f6a4d18e98505e31baf50ebb8e36da071868beae05e4631a92fed351f",
+      "preflight": "src/brain-engine/features/documents/migrations/0001_documents.preflight.sql",
+      "preflight_sha256": "5a597e6a36606475e0f3375d7681121aaf2658739e0dfc21db9d96db6a7c852e",
+      "verify": "src/brain-engine/features/documents/migrations/0001_documents.verify.sql",
+      "verify_sha256": "95e165473a9ca02662d72d364f8cceed092b9a4c149760cc684fb73459023517"
+    }
+  ]
+}

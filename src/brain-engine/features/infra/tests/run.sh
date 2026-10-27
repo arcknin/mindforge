@@ -33,27 +33,12 @@ case "$MODE" in
       operations)
         bash "${ROOT_DIR}/tests/test_operations.sh" operations
         ;;
-      acceptance-runner)
-        bash "${ROOT_DIR}/tests/test_acceptance_runner.sh" acceptance-runner
-        ;;
       all)
         bash "${ROOT_DIR}/tests/test_migrations.sh" migrations
         bash "${ROOT_DIR}/tests/test_operations.sh" operations
-        bash "${ROOT_DIR}/tests/test_acceptance_runner.sh" acceptance-runner
         ;;
       *)
         printf 'unknown unit selection: %s\n' "$SELECTION" >&2
-        exit 2
-        ;;
-    esac
-    ;;
-  integration)
-    case "$SELECTION" in
-      --local-disposable|--vm-disposable)
-        bash "${ROOT_DIR}/tests/integration_disposable.sh" "$SELECTION"
-        ;;
-      *)
-        printf 'unknown integration selection: %s\n' "$SELECTION" >&2
         exit 2
         ;;
     esac

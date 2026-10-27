@@ -2,90 +2,68 @@
 set -u
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPOSITORY_ROOT="$(cd "${ROOT_DIR}/../../../.." && pwd)"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/tests/lib/assert.sh"
-# shellcheck disable=SC1091
-source "${ROOT_DIR}/tests/lib/fixture.sh"
-# shellcheck disable=SC1091
-source "${ROOT_DIR}/tests/lib/fake-docker.sh"
 
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
 MIGRATE_SCRIPT="${ROOT_DIR}/scripts/migrate.sh"
 UP_SCRIPT="${ROOT_DIR}/scripts/up.sh"
 MIGRATIONS_DIR="${ROOT_DIR}/postgres/migrations"
-TEST_TEMP="$(mktemp -d "${TMPDIR:-/tmp}/mindforge-infra-migrations.XXXXXX")"
-trap 'rm -rf "$TEST_TEMP"' EXIT
-
-sha256_file() {
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$1" | awk '{print $1}'
-  else
-    sha256sum "$1" | awk '{print $1}'
-  fi
-}
-
-make_migrations() {
-  local directory="$1"
-  mkdir -p "$directory"
-  cat > "${directory}/0001_infra_init.sql" <<'EOF'
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-EOF
-  cat > "${directory}/0002_auth_bootstrap.sql" <<'EOF'
-DO $$ BEGIN RAISE NOTICE 'auth bootstrap is owned by gotrue migrate'; END $$;
-EOF
-}
-
-make_orphan_ledger_fixture() {
-  local directory="$1"
-  local ledger_file="$2"
-  local id file hash
-  mkdir -p "$directory"
-  : > "$ledger_file"
-  for id in 0001 0002 0003 0004; do
-    file="${directory}/${id}_migration_${id}.sql"
-    printf 'CREATE TABLE IF NOT EXISTS infra.test_migration_%s (id integer);\n' "$id" > "$file"
-    hash="$(sha256_file "$file")"
-    printf '%s|%s\n' "$id" "$hash" >> "$ledger_file"
-  done
-  printf '0005|0000000000000000000000000000000000000000000000000000000000000000\n' >> "$ledger_file"
-}
-
-run_migrate() {
-  local migrations_dir="$1"
-  local ledger_file="$2"
-  local fail_match="${3:-}"
-  local env_file="${TEST_TEMP}/runner.env"
-  local fake_bin="${TEST_TEMP}/bin"
-  make_valid_env "$env_file"
-  make_fake_docker "$fake_bin"
-  : > "${TEST_TEMP}/docker.log"
-  : > "${TEST_TEMP}/docker.stdin"
-  set +e
-  PATH="${fake_bin}:$PATH" FAKE_DOCKER_LOG="${TEST_TEMP}/docker.log" FAKE_DOCKER_STDIN_LOG="${TEST_TEMP}/docker.stdin" FAKE_DOCKER_LEDGER="$ledger_file" FAKE_DOCKER_FAIL_MATCH="$fail_match" INFRA_MIGRATIONS_DIR="$migrations_dir" bash "$MIGRATE_SCRIPT" "$env_file" mf-migration-test > "${TEST_TEMP}/runner.output" 2>&1
-  MIGRATE_STATUS=$?
-  set -e
-}
+FEATURE_MIGRATIONS_DIR="${ROOT_DIR}/postgres/feature-migrations"
 
 test_migration_surface_is_canonical() {
-  local compose
+  local compose evidence_migration feature_sql feature_catalog feature_readme canonical_hash
   compose="$(cat "$COMPOSE_FILE")"
   [[ -f "${MIGRATIONS_DIR}/0001_infra_init.sql" ]]
   assert_success "$?" "initial infrastructure migration has a zero-padded numeric ID"
+  [[ -f "${MIGRATIONS_DIR}/0005_infra_migration_evidence.sql" ]]
+  assert_success "$?" "infrastructure target evidence migration has the next canonical ID"
   [[ ! -f "${MIGRATIONS_DIR}/2026xx01_infra_init.sql" ]]
   assert_success "$?" "non-canonical placeholder migration is absent"
-  [[ "$compose" != *'/docker-entrypoint-initdb.d'* ]]
-  assert_success "$?" "Compose does not use initdb as the future migration executor"
+  assert_contains "$compose" './postgres/bootstrap:/docker-entrypoint-initdb.d:ro' "Compose uses initdb only for fresh-cluster bootstrap"
+  evidence_migration="$(cat "${MIGRATIONS_DIR}/0005_infra_migration_evidence.sql")"
+  assert_contains "$evidence_migration" 'CREATE TABLE IF NOT EXISTS infra.migration_target_evidence' "infrastructure migration defines target evidence records"
+  assert_contains "$evidence_migration" 'CREATE TABLE IF NOT EXISTS infra.migration_attempts' "infrastructure migration defines incomplete and failed attempt records"
+  assert_contains "$evidence_migration" 'migration_sha256' "target evidence preserves immutable migration hashes"
+  assert_contains "$evidence_migration" 'authorization_reference' "target evidence preserves owner authority references"
+  assert_contains "$evidence_migration" 'sanitized_outcome' "target evidence records only sanitized outcomes"
+  assert_contains "$evidence_migration" "target_name text NOT NULL CHECK (target_name IN ('mindforge_develop', 'mindforge'))" "migration evidence accepts only the physical develop and main database names"
+  assert_not_contains "$evidence_migration" 'mindforge_main' "migration evidence has no superseded physical main alias"
+  [[ -f "${FEATURE_MIGRATIONS_DIR}/.gitkeep" && -f "${FEATURE_MIGRATIONS_DIR}/README.md" && -f "${FEATURE_MIGRATIONS_DIR}/catalog.json" ]]
+  assert_success "$?" "global feature migration catalog descriptor is versioned"
+  feature_catalog="$(cat "${FEATURE_MIGRATIONS_DIR}/catalog.json")"
+  assert_contains "$feature_catalog" '"id": "0006"' "Brain Core follows infra 0001 through 0005 under one global ID"
+  assert_contains "$feature_catalog" 'src/brain-engine/features/brain/migrations/0001_brain_core.sql' "catalog resolves the feature-owned canonical source"
+  assert_contains "$feature_catalog" '0001_brain_core.preflight.sql' "catalog registers the feature-owned read-only preflight"
+  assert_contains "$feature_catalog" '0001_brain_core.verify.sql' "catalog registers the feature-owned schema verification"
+  canonical_hash="$(shasum -a 256 "${REPOSITORY_ROOT}/src/brain-engine/features/brain/migrations/0001_brain_core.sql" | awk '{print $1}')"
+  assert_contains "$feature_catalog" "\"sha256\": \"${canonical_hash}\"" "catalog pins the exact canonical source bytes"
+  feature_readme="$(cat "${FEATURE_MIGRATIONS_DIR}/README.md")"
+  assert_contains "$feature_readme" 'Entry `0006` references Brain Core' "catalog documentation names the approved global Brain Core entry"
+  assert_contains "$feature_readme" 'canonical feature-owned' "catalog documentation keeps the payload feature-owned"
+  assert_contains "$feature_readme" 'exact SHA-256 of all three files' "catalog documentation describes payload and check hash pins"
+  assert_contains "$feature_readme" 'one `infra.migration_ledger` insert in a single transaction' "catalog documentation describes the sole atomic ledger route"
+  assert_contains "$feature_readme" 'A matching global ID and hash is a no-op' "catalog documentation describes same-hash idempotency"
+  assert_contains "$feature_readme" 'does not prove VM state, SQL application, backup or restore behavior, or runtime behavior' "catalog documentation limits local evidence claims"
+  assert_not_contains "$feature_readme" 'brain_core.migration_ledger' "catalog documentation does not introduce a second feature ledger"
+  assert_contains "$(cat "${ROOT_DIR}/tests/versioned-surface.txt")" 'postgres/feature-migrations/catalog.json' "versioned surface registers the global catalog descriptor"
+  feature_sql="$(find "$FEATURE_MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' -print)"
+  [[ -z "$feature_sql" ]]
+  assert_success "$?" "feature migration payload is not copied into infra"
 }
 
 test_auth_bootstrap_precedes_auth_service() {
   local compose
   compose="$(cat "$COMPOSE_FILE")"
-  [[ "$compose" == *$'  auth-migrate:'* && "$compose" == *'command: gotrue migrate'* ]]
-  assert_success "$?" "pinned GoTrue migration service is declared"
+  [[ "$compose" == *$'  auth-develop-migrate:'* && "$compose" == *$'  auth-migrate:'* && "$compose" == *'command: gotrue migrate'* ]]
+  assert_success "$?" "two pinned target-specific GoTrue migration services are declared"
   [[ "$compose" == *'condition: service_completed_successfully'* ]]
-  assert_success "$?" "Auth waits for successful GoTrue migrations"
-  [[ "$compose" == *'command: gotrue serve'* ]]
-  assert_success "$?" "Auth serve command remains explicit after bootstrap"
+  assert_success "$?" "each Auth service waits for its successful GoTrue migration"
+  [[ "$compose" == *$'  auth-develop:'* && "$compose" == *$'  auth:'* && "$compose" == *'command: gotrue serve'* ]]
+  assert_success "$?" "two Auth serve commands remain explicit after target-specific bootstrap"
+  assert_not_contains "$compose" $'  auth-main-migrate:' "Compose has no superseded main Auth migration service identity"
+  assert_not_contains "$compose" $'  auth-main:' "Compose has no superseded main Auth service identity"
 }
 
 test_auth_schema_precondition_exists_before_gotrue_migrate() {
@@ -102,7 +80,7 @@ test_auth_postgres_role_precondition_exists_before_gotrue_migrate() {
   local auth_precondition
   auth_precondition="${MIGRATIONS_DIR}/0004_auth_postgres_role.sql"
   [[ -f "$auth_precondition" ]]
-  assert_success "$?" "infrastructure provides the PostgreSQL role required by the GoTrue catalog"
+  assert_success "$?" "infrastructure provides the PostgreSQL role required by the Auth catalog"
   if [[ -f "$auth_precondition" ]]; then
     assert_contains "$(cat "$auth_precondition")" 'CREATE ROLE postgres NOLOGIN;' "Auth PostgreSQL role precondition is least-privilege and idempotent"
   fi
@@ -110,114 +88,50 @@ test_auth_postgres_role_precondition_exists_before_gotrue_migrate() {
 
 test_migration_and_start_scripts_exist() {
   [[ -x "$MIGRATE_SCRIPT" ]]
-  assert_success "$?" "deterministic infrastructure migration runner exists"
+  assert_success "$?" "deterministic infrastructure migration adapter exists"
   [[ -x "$UP_SCRIPT" ]]
-  assert_success "$?" "startup sequence runner exists"
+  assert_success "$?" "VM startup sequence runner exists"
 }
 
-test_migration_runner_replays_and_rejects_unsafe_inputs() {
-  local migrations_dir ledger_file hash
-  migrations_dir="${TEST_TEMP}/valid-migrations"
-  ledger_file="${TEST_TEMP}/empty-ledger"
-  : > "$ledger_file"
-  make_migrations "$migrations_dir"
-
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_success "$MIGRATE_STATUS" "migration runner applies a canonical empty ledger in fake Docker"
-  assert_contains "$(cat "${TEST_TEMP}/docker.stdin")" "BEGIN;" "migration runner sends an explicit transaction to PostgreSQL"
-
-  migrations_dir="${TEST_TEMP}/bad-name"
-  ledger_file="${TEST_TEMP}/empty-ledger"
-  make_migrations "$migrations_dir"
-  mv "${migrations_dir}/0002_auth_bootstrap.sql" "${migrations_dir}/2026xx01_auth_bootstrap.sql"
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_failure "$MIGRATE_STATUS" "migration runner rejects a non-canonical name"
-  assert_not_contains "$(cat "${TEST_TEMP}/docker.stdin")" "BEGIN;" "non-canonical migration reaches no migration DDL"
-
-  migrations_dir="${TEST_TEMP}/duplicate-id"
-  ledger_file="${TEST_TEMP}/empty-ledger"
-  make_migrations "$migrations_dir"
-  cp "${migrations_dir}/0001_infra_init.sql" "${migrations_dir}/0001_duplicate.sql"
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_failure "$MIGRATE_STATUS" "migration runner rejects duplicate IDs"
-  assert_not_contains "$(cat "${TEST_TEMP}/docker.stdin")" "BEGIN;" "duplicate IDs reach no migration DDL"
-
-  migrations_dir="${TEST_TEMP}/drift"
-  ledger_file="${TEST_TEMP}/drift-ledger"
-  make_migrations "$migrations_dir"
-  printf '0001|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n' > "$ledger_file"
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_failure "$MIGRATE_STATUS" "migration runner rejects an altered applied migration"
-  assert_not_contains "$(cat "${TEST_TEMP}/docker.stdin")" "BEGIN;" "migration drift reaches no new migration DDL"
-
-  migrations_dir="${TEST_TEMP}/out-of-order"
-  ledger_file="${TEST_TEMP}/out-of-order-ledger"
-  make_migrations "$migrations_dir"
-  hash="$(sha256_file "${migrations_dir}/0002_auth_bootstrap.sql")"
-  printf '0002|%s\n' "$hash" > "$ledger_file"
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_failure "$MIGRATE_STATUS" "migration runner rejects a pending migration before the highest applied ID"
-  assert_not_contains "$(cat "${TEST_TEMP}/docker.stdin")" "BEGIN;" "out-of-order ledger reaches no new migration DDL"
+test_migration_adapter_is_binary_only_and_explicit() {
+  local source
+  source="$(cat "$MIGRATE_SCRIPT")"
+  assert_contains "$source" 'MINDFORGE_INFRA_BIN' "migration adapter resolves the distributable binary"
+  assert_contains "$source" 'TARGET' "migration adapter requires an explicit target"
+  assert_contains "$source" 'OPERATOR_ID' "migration adapter requires an explicit operator"
+  assert_contains "$source" 'AUTHORIZATION_REF' "migration adapter requires an explicit authority reference"
+  assert_not_contains "$source" 'compose_init' "migration adapter does not initialize Compose"
+  assert_not_contains "$source" 'compose_cmd' "migration adapter does not invoke Compose"
+  assert_not_contains "$source" 'pg_dump' "migration adapter does not run backup clients"
+  assert_not_contains "$source" 'pg_restore' "migration adapter does not run restore clients"
+  assert_not_contains "$source" 'psql' "migration adapter does not execute SQL directly"
+  assert_contains "$source" 'REPOSITORY_ROOT="$(cd "${ROOT_DIR}/../../../.." && pwd)"' "migration adapter resolves the repository root for the global catalog"
+  assert_contains "$source" '--source-root "$REPOSITORY_ROOT"' "migration adapter passes the explicit repository root"
+  assert_contains "$(cat "$UP_SCRIPT")" '--source-root "$REPOSITORY_ROOT"' "startup passes the repository root to the operator"
+  assert_contains "$(cat "${ROOT_DIR}/scripts/inspect.sh")" '--source-root "${REPOSITORY_ROOT}"' "inspect passes the repository root to the operator"
 }
 
-test_migration_runner_rejects_orphan_ledger_id_before_migration_ddl() {
-  local migrations_dir ledger_file stdin_log
-  migrations_dir="${TEST_TEMP}/orphan-ledger-migrations"
-  ledger_file="${TEST_TEMP}/orphan-ledger"
-  make_orphan_ledger_fixture "$migrations_dir" "$ledger_file"
-
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_failure "$MIGRATE_STATUS" "migration runner rejects an applied ledger ID whose canonical file is absent"
-  stdin_log="$(cat "${TEST_TEMP}/docker.stdin")"
-  assert_not_contains "$stdin_log" "test_migration_0001" "orphan ledger fails before any migration DDL is sent"
-  assert_not_contains "$stdin_log" "BEGIN;" "orphan ledger fails before any migration transaction is sent"
+test_startup_is_the_only_compose_mutation_adapter() {
+  local migrate_source backup_source restore_source up_source
+  migrate_source="$(cat "$MIGRATE_SCRIPT")"
+  backup_source="$(cat "${ROOT_DIR}/scripts/backup.sh")"
+  restore_source="$(cat "${ROOT_DIR}/scripts/restore.sh")"
+  up_source="$(cat "$UP_SCRIPT")"
+  assert_contains "$up_source" 'compose_cmd up -d db' "VM startup owns the database Compose lifecycle"
+  assert_contains "$up_source" 'compose_cmd run --rm auth-develop-migrate' "VM startup owns the develop Auth migration lifecycle"
+  assert_contains "$up_source" 'compose_cmd run --rm auth-migrate' "VM startup owns the main Auth migration lifecycle"
+  assert_not_contains "$migrate_source" 'docker' "migration adapter has no Docker runtime path"
+  assert_not_contains "$backup_source" 'docker' "backup adapter has no Docker runtime path"
+  assert_not_contains "$restore_source" 'docker' "restore adapter has no Docker runtime path"
 }
 
-test_existing_orphan_ledger_fails_before_any_bootstrap_ddl() {
-  local migrations_dir ledger_file fake_log
-  migrations_dir="${TEST_TEMP}/existing-orphan-ledger-migrations"
-  ledger_file="${TEST_TEMP}/existing-orphan-ledger"
-  make_orphan_ledger_fixture "$migrations_dir" "$ledger_file"
-
-  run_migrate "$migrations_dir" "$ledger_file"
-  assert_failure "$MIGRATE_STATUS" "existing orphan ledger fails closed"
-  fake_log="$(cat "${TEST_TEMP}/docker.log" "${TEST_TEMP}/docker.stdin")"
-  assert_not_contains "$fake_log" "CREATE SCHEMA" "existing orphan ledger sends no schema bootstrap DDL"
-  assert_not_contains "$fake_log" "CREATE TABLE" "existing orphan ledger sends no table bootstrap DDL"
-  assert_not_contains "$fake_log" "BEGIN;" "existing orphan ledger sends no migration transaction"
-}
-
-test_startup_sequences_auth_migration_before_serve() {
-  local env_file fake_bin output status log
-  env_file="${TEST_TEMP}/startup.env"
-  fake_bin="${TEST_TEMP}/startup-bin"
-  make_valid_env "$env_file"
-  make_fake_docker "$fake_bin"
-  : > "${TEST_TEMP}/startup.log"
-  set +e
-  PATH="${fake_bin}:$PATH" FAKE_DOCKER_LOG="${TEST_TEMP}/startup.log" bash "$UP_SCRIPT" "$env_file" mf-startup-test > "${TEST_TEMP}/startup.output" 2>&1
-  status=$?
-  set -e
-  assert_success "$status" "startup runs db, infrastructure migration, GoTrue migration and Auth with fake Docker"
-  log="$(cat "${TEST_TEMP}/startup.log")"
-  assert_contains "$log" "run --rm auth-migrate" "startup invokes the exact GoTrue migration command"
-  assert_contains "$log" "up -d --no-deps auth" "startup only serves Auth after the migration step"
-
-  : > "${TEST_TEMP}/startup.log"
-  set +e
-  PATH="${fake_bin}:$PATH" FAKE_DOCKER_LOG="${TEST_TEMP}/startup.log" FAKE_DOCKER_FAIL_MATCH='run --rm auth-migrate' bash "$UP_SCRIPT" "$env_file" mf-startup-test > "${TEST_TEMP}/startup-fail.output" 2>&1
-  status=$?
-  set -e
-  assert_failure "$status" "failed GoTrue migration fails startup"
-  assert_not_contains "$(cat "${TEST_TEMP}/startup.log")" "up -d --no-deps auth" "failed GoTrue migration never starts Auth serve"
-
-  : > "${TEST_TEMP}/startup.log"
-  set +e
-  PATH="${fake_bin}:$PATH" FAKE_DOCKER_LOG="${TEST_TEMP}/startup.log" FAKE_DOCKER_FAIL_MATCH='up -d db' bash "$UP_SCRIPT" "$env_file" mf-startup-test > "${TEST_TEMP}/startup-db-fail.output" 2>&1
-  status=$?
-  set -e
-  assert_failure "$status" "failed database compose startup fails startup"
-  assert_contains "$(cat "${TEST_TEMP}/startup-db-fail.output")" 'Startup error: database Compose start failed' "database compose failure is reported without runtime output"
+test_no_disposable_runtime_surface_remains() {
+  [[ ! -e "${ROOT_DIR}/scripts/acceptance-disposable.sh" ]]
+  assert_success "$?" "disposable acceptance script is absent"
+  [[ ! -e "${ROOT_DIR}/tests/integration_disposable.sh" ]]
+  assert_success "$?" "disposable integration runner is absent"
+  [[ ! -e "${ROOT_DIR}/tests/test_acceptance_runner.sh" ]]
+  assert_success "$?" "disposable acceptance tests are absent"
 }
 
 case "${1:-all}" in
@@ -227,10 +141,9 @@ case "${1:-all}" in
     test_auth_schema_precondition_exists_before_gotrue_migrate
     test_auth_postgres_role_precondition_exists_before_gotrue_migrate
     test_migration_and_start_scripts_exist
-    test_migration_runner_replays_and_rejects_unsafe_inputs
-    test_migration_runner_rejects_orphan_ledger_id_before_migration_ddl
-    test_existing_orphan_ledger_fails_before_any_bootstrap_ddl
-    test_startup_sequences_auth_migration_before_serve
+    test_migration_adapter_is_binary_only_and_explicit
+    test_startup_is_the_only_compose_mutation_adapter
+    test_no_disposable_runtime_surface_remains
     ;;
   *)
     printf 'unknown migration test selection: %s\n' "$1" >&2

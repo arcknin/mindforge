@@ -8,7 +8,7 @@ fail_config() {
 
 is_allowed_key() {
   case "$1" in
-    POSTGRES_DB|POSTGRES_USER|POSTGRES_PASSWORD|POSTGRES_HOST|POSTGRES_PORT|DB_BIND_ADDR|AUTH_PORT|AUTH_BIND_ADDR|ALLOW_LAN_BINDING|GOTRUE_DB_DATABASE_URL|GOTRUE_SITE_URL|GOTRUE_ADDITIONAL_REDIRECT_URLS|GOTRUE_URI_ALLOW_LIST|GOTRUE_API_EXTERNAL_URL|GOTRUE_JWT_SECRET|GOTRUE_OPERATOR_TOKEN|GOTRUE_DB_MAX_POOL_SIZE|GOTRUE_MAILER_AUTOCONFIRM|TZ|MF_ENV_CLASS|MF_DISPOSABLE_TARGET_ID|MF_DISPOSABLE_CONFIRMATION|MF_EXPECTED_VOLUME)
+    POSTGRES_ADMIN_USER|POSTGRES_ADMIN_PASSWORD|POSTGRES_HOST|POSTGRES_CLIENT_HOST|POSTGRES_PORT|DB_BIND_ADDR|DEVELOP_DB_NAME|DEVELOP_DB_USER|DEVELOP_DB_PASSWORD|MAIN_DB_NAME|MAIN_DB_USER|MAIN_DB_PASSWORD|DEVELOP_AUTH_DB_URL|MAIN_AUTH_DB_URL|DEVELOP_AUTH_PORT|MAIN_AUTH_PORT|DEVELOP_AUTH_BIND_ADDR|MAIN_AUTH_BIND_ADDR|ALLOW_LAN_BINDING|DEVELOP_AUTH_SITE_URL|MAIN_AUTH_SITE_URL|DEVELOP_AUTH_ADDITIONAL_REDIRECT_URLS|MAIN_AUTH_ADDITIONAL_REDIRECT_URLS|DEVELOP_AUTH_URI_ALLOW_LIST|MAIN_AUTH_URI_ALLOW_LIST|DEVELOP_AUTH_API_EXTERNAL_URL|MAIN_AUTH_API_EXTERNAL_URL|DEVELOP_AUTH_JWT_SECRET|MAIN_AUTH_JWT_SECRET|DEVELOP_AUTH_OPERATOR_TOKEN|MAIN_AUTH_OPERATOR_TOKEN|GOTRUE_DB_MAX_POOL_SIZE|GOTRUE_MAILER_AUTOCONFIRM|TZ)
       return 0
       ;;
     *)
@@ -18,12 +18,17 @@ is_allowed_key() {
 }
 
 clear_known_values() {
-  unset POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD POSTGRES_HOST POSTGRES_PORT
-  unset DB_BIND_ADDR AUTH_PORT AUTH_BIND_ADDR ALLOW_LAN_BINDING
-  unset GOTRUE_DB_DATABASE_URL GOTRUE_SITE_URL GOTRUE_ADDITIONAL_REDIRECT_URLS
-  unset GOTRUE_URI_ALLOW_LIST GOTRUE_API_EXTERNAL_URL GOTRUE_JWT_SECRET
-  unset GOTRUE_OPERATOR_TOKEN GOTRUE_DB_MAX_POOL_SIZE GOTRUE_MAILER_AUTOCONFIRM TZ
-  unset MF_ENV_CLASS MF_DISPOSABLE_TARGET_ID MF_DISPOSABLE_CONFIRMATION MF_EXPECTED_VOLUME
+  unset POSTGRES_ADMIN_USER POSTGRES_ADMIN_PASSWORD POSTGRES_HOST POSTGRES_CLIENT_HOST POSTGRES_PORT DB_BIND_ADDR
+  unset DEVELOP_DB_NAME DEVELOP_DB_USER DEVELOP_DB_PASSWORD MAIN_DB_NAME MAIN_DB_USER MAIN_DB_PASSWORD
+  unset DEVELOP_AUTH_DB_URL MAIN_AUTH_DB_URL DEVELOP_AUTH_PORT MAIN_AUTH_PORT
+  unset DEVELOP_AUTH_BIND_ADDR MAIN_AUTH_BIND_ADDR ALLOW_LAN_BINDING
+  unset DEVELOP_AUTH_SITE_URL MAIN_AUTH_SITE_URL
+  unset DEVELOP_AUTH_ADDITIONAL_REDIRECT_URLS MAIN_AUTH_ADDITIONAL_REDIRECT_URLS
+  unset DEVELOP_AUTH_URI_ALLOW_LIST MAIN_AUTH_URI_ALLOW_LIST
+  unset DEVELOP_AUTH_API_EXTERNAL_URL MAIN_AUTH_API_EXTERNAL_URL
+  unset DEVELOP_AUTH_JWT_SECRET MAIN_AUTH_JWT_SECRET
+  unset DEVELOP_AUTH_OPERATOR_TOKEN MAIN_AUTH_OPERATOR_TOKEN
+  unset GOTRUE_DB_MAX_POOL_SIZE GOTRUE_MAILER_AUTOCONFIRM TZ
 }
 
 load_dotenv_restricted() {
@@ -74,6 +79,30 @@ require_value() {
   esac
 }
 
+require_identifier() {
+  local name="$1"
+  local value="$2"
+  require_value "$name" "$value"
+  [[ "$value" =~ ^[a-z_][a-z0-9_]*$ ]] || fail_config "$name must be a lowercase SQL identifier"
+}
+
+require_hostname() {
+  local name="$1"
+  local value="$2"
+  require_value "$name" "$value"
+  (( ${#value} <= 253 )) || fail_config "$name must be a safe hostname"
+  [[ "$value" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)*[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] || fail_config "$name must be a safe hostname"
+}
+
+require_uri_safe_secret() {
+  local name="$1"
+  local value="$2"
+  local minimum_length="$3"
+  require_value "$name" "$value"
+  [[ "$value" =~ ^[A-Za-z0-9._~-]+$ ]] || fail_config "$name must contain only URI-safe characters"
+  (( ${#value} >= minimum_length )) || fail_config "$name must contain at least ${minimum_length} characters"
+}
+
 require_port() {
   local name="$1"
   local port="$2"
@@ -96,7 +125,7 @@ require_url() {
   [[ "$value" != *'*'* && "$value" != *' '* ]] || fail_config "$name cannot contain wildcards or spaces"
   rest="${value#*://}"
   host="${rest%%/*}"
-  [[ -n "$host" ]] || fail_config "$name must include a host"
+  [[ -n "$host" && "$host" != *'?'* && "$host" != *'#'* ]] || fail_config "$name must include a valid host"
 }
 
 require_redirect_list() {
@@ -127,39 +156,90 @@ require_bind_address() {
   esac
 }
 
+require_distinct() {
+  local left_name="$1"
+  local left_value="$2"
+  local right_name="$3"
+  local right_value="$4"
+  [[ "$left_value" != "$right_value" ]] || fail_config "$left_name and $right_name must be distinct"
+}
+
 validate_config() {
   load_dotenv_restricted
 
-  require_value POSTGRES_DB "${POSTGRES_DB:-}"
-  require_value POSTGRES_USER "${POSTGRES_USER:-}"
-  require_value POSTGRES_PASSWORD "${POSTGRES_PASSWORD:-}"
+  require_identifier POSTGRES_ADMIN_USER "${POSTGRES_ADMIN_USER:-}"
+  require_uri_safe_secret POSTGRES_ADMIN_PASSWORD "${POSTGRES_ADMIN_PASSWORD:-}" 16
   require_value POSTGRES_HOST "${POSTGRES_HOST:-}"
-  require_value GOTRUE_JWT_SECRET "${GOTRUE_JWT_SECRET:-}"
-  require_value GOTRUE_OPERATOR_TOKEN "${GOTRUE_OPERATOR_TOKEN:-}"
+  require_hostname POSTGRES_CLIENT_HOST "${POSTGRES_CLIENT_HOST:-}"
   require_value ALLOW_LAN_BINDING "${ALLOW_LAN_BINDING:-}"
-  require_value GOTRUE_DB_DATABASE_URL "${GOTRUE_DB_DATABASE_URL:-}"
-
-  [[ "${POSTGRES_HOST:-}" == 'db' ]] || fail_config 'POSTGRES_HOST must be the internal db service'
-  [[ "${ALLOW_LAN_BINDING:-}" == 'yes' || "${ALLOW_LAN_BINDING:-}" == 'no' ]] || fail_config 'ALLOW_LAN_BINDING must be yes or no'
-  (( ${#POSTGRES_PASSWORD} >= 16 )) || fail_config 'POSTGRES_PASSWORD must contain at least 16 characters'
-  (( ${#GOTRUE_JWT_SECRET} >= 32 )) || fail_config 'GOTRUE_JWT_SECRET must contain at least 32 characters'
-  (( ${#GOTRUE_OPERATOR_TOKEN} >= 32 )) || fail_config 'GOTRUE_OPERATOR_TOKEN must contain at least 32 characters'
+  [[ "$POSTGRES_HOST" == 'db' ]] || fail_config 'POSTGRES_HOST must be the internal db service'
+  [[ "$ALLOW_LAN_BINDING" == 'yes' || "$ALLOW_LAN_BINDING" == 'no' ]] || fail_config 'ALLOW_LAN_BINDING must be yes or no'
 
   require_port POSTGRES_PORT "${POSTGRES_PORT:-}"
-  require_port AUTH_PORT "${AUTH_PORT:-}"
   require_bind_address DB_BIND_ADDR "${DB_BIND_ADDR:-}"
-  require_bind_address AUTH_BIND_ADDR "${AUTH_BIND_ADDR:-}"
-  require_url GOTRUE_SITE_URL "${GOTRUE_SITE_URL:-}"
-  require_redirect_list GOTRUE_ADDITIONAL_REDIRECT_URLS "${GOTRUE_ADDITIONAL_REDIRECT_URLS:-}"
-  require_redirect_list GOTRUE_URI_ALLOW_LIST "${GOTRUE_URI_ALLOW_LIST:-}"
-  require_url GOTRUE_API_EXTERNAL_URL "${GOTRUE_API_EXTERNAL_URL:-}"
+
+  require_value DEVELOP_DB_NAME "${DEVELOP_DB_NAME:-}"
+  require_value MAIN_DB_NAME "${MAIN_DB_NAME:-}"
+  [[ "$DEVELOP_DB_NAME" == 'mindforge_develop' ]] || fail_config 'DEVELOP_DB_NAME must be mindforge_develop'
+  [[ "$MAIN_DB_NAME" == 'mindforge' ]] || fail_config 'MAIN_DB_NAME must be mindforge'
+  require_identifier DEVELOP_DB_USER "${DEVELOP_DB_USER:-}"
+  require_identifier MAIN_DB_USER "${MAIN_DB_USER:-}"
+  require_distinct DEVELOP_DB_USER "$DEVELOP_DB_USER" MAIN_DB_USER "$MAIN_DB_USER"
+  require_distinct POSTGRES_ADMIN_USER "$POSTGRES_ADMIN_USER" DEVELOP_DB_USER "$DEVELOP_DB_USER"
+  require_uri_safe_secret DEVELOP_DB_PASSWORD "${DEVELOP_DB_PASSWORD:-}" 16
+  require_uri_safe_secret MAIN_DB_PASSWORD "${MAIN_DB_PASSWORD:-}" 16
+  require_distinct DEVELOP_DB_PASSWORD "$DEVELOP_DB_PASSWORD" MAIN_DB_PASSWORD "$MAIN_DB_PASSWORD"
+  require_distinct POSTGRES_ADMIN_PASSWORD "$POSTGRES_ADMIN_PASSWORD" DEVELOP_DB_PASSWORD "$DEVELOP_DB_PASSWORD"
+  if [[ "$POSTGRES_ADMIN_USER" == "$MAIN_DB_USER" ]]; then
+    [[ "$POSTGRES_ADMIN_PASSWORD" == "$MAIN_DB_PASSWORD" ]] || fail_config 'POSTGRES_ADMIN_PASSWORD must match MAIN_DB_PASSWORD when their users are the same'
+  else
+    require_distinct POSTGRES_ADMIN_PASSWORD "$POSTGRES_ADMIN_PASSWORD" MAIN_DB_PASSWORD "$MAIN_DB_PASSWORD"
+  fi
+
+  require_value DEVELOP_AUTH_DB_URL "${DEVELOP_AUTH_DB_URL:-}"
+  require_value MAIN_AUTH_DB_URL "${MAIN_AUTH_DB_URL:-}"
+  local expected_develop_database_url expected_main_database_url
+  expected_develop_database_url="postgres://${DEVELOP_DB_USER}:${DEVELOP_DB_PASSWORD}@${POSTGRES_HOST}:5432/${DEVELOP_DB_NAME}?sslmode=disable&search_path=auth"
+  expected_main_database_url="postgres://${MAIN_DB_USER}:${MAIN_DB_PASSWORD}@${POSTGRES_HOST}:5432/${MAIN_DB_NAME}?sslmode=disable&search_path=auth"
+  [[ "$DEVELOP_AUTH_DB_URL" == "$expected_develop_database_url" ]] || fail_config 'DEVELOP_AUTH_DB_URL must match the develop role, database, internal db:5432 endpoint, and auth search path'
+  [[ "$MAIN_AUTH_DB_URL" == "$expected_main_database_url" ]] || fail_config 'MAIN_AUTH_DB_URL must match the main role, database, internal db:5432 endpoint, and auth search path'
+  require_distinct DEVELOP_AUTH_DB_URL "$DEVELOP_AUTH_DB_URL" MAIN_AUTH_DB_URL "$MAIN_AUTH_DB_URL"
+
+  require_port DEVELOP_AUTH_PORT "${DEVELOP_AUTH_PORT:-}"
+  require_port MAIN_AUTH_PORT "${MAIN_AUTH_PORT:-}"
+  require_distinct DEVELOP_AUTH_PORT "$DEVELOP_AUTH_PORT" MAIN_AUTH_PORT "$MAIN_AUTH_PORT"
+  require_distinct POSTGRES_PORT "$POSTGRES_PORT" DEVELOP_AUTH_PORT "$DEVELOP_AUTH_PORT"
+  require_distinct POSTGRES_PORT "$POSTGRES_PORT" MAIN_AUTH_PORT "$MAIN_AUTH_PORT"
+  require_bind_address DEVELOP_AUTH_BIND_ADDR "${DEVELOP_AUTH_BIND_ADDR:-}"
+  require_bind_address MAIN_AUTH_BIND_ADDR "${MAIN_AUTH_BIND_ADDR:-}"
+
+  require_url DEVELOP_AUTH_SITE_URL "${DEVELOP_AUTH_SITE_URL:-}"
+  require_url MAIN_AUTH_SITE_URL "${MAIN_AUTH_SITE_URL:-}"
+  require_redirect_list DEVELOP_AUTH_ADDITIONAL_REDIRECT_URLS "${DEVELOP_AUTH_ADDITIONAL_REDIRECT_URLS:-}"
+  require_redirect_list MAIN_AUTH_ADDITIONAL_REDIRECT_URLS "${MAIN_AUTH_ADDITIONAL_REDIRECT_URLS:-}"
+  require_redirect_list DEVELOP_AUTH_URI_ALLOW_LIST "${DEVELOP_AUTH_URI_ALLOW_LIST:-}"
+  require_redirect_list MAIN_AUTH_URI_ALLOW_LIST "${MAIN_AUTH_URI_ALLOW_LIST:-}"
+  require_url DEVELOP_AUTH_API_EXTERNAL_URL "${DEVELOP_AUTH_API_EXTERNAL_URL:-}"
+  require_url MAIN_AUTH_API_EXTERNAL_URL "${MAIN_AUTH_API_EXTERNAL_URL:-}"
+  require_distinct DEVELOP_AUTH_API_EXTERNAL_URL "$DEVELOP_AUTH_API_EXTERNAL_URL" MAIN_AUTH_API_EXTERNAL_URL "$MAIN_AUTH_API_EXTERNAL_URL"
+
+  require_uri_safe_secret DEVELOP_AUTH_JWT_SECRET "${DEVELOP_AUTH_JWT_SECRET:-}" 32
+  require_uri_safe_secret MAIN_AUTH_JWT_SECRET "${MAIN_AUTH_JWT_SECRET:-}" 32
+  require_uri_safe_secret DEVELOP_AUTH_OPERATOR_TOKEN "${DEVELOP_AUTH_OPERATOR_TOKEN:-}" 32
+  require_uri_safe_secret MAIN_AUTH_OPERATOR_TOKEN "${MAIN_AUTH_OPERATOR_TOKEN:-}" 32
+  require_distinct DEVELOP_AUTH_JWT_SECRET "$DEVELOP_AUTH_JWT_SECRET" MAIN_AUTH_JWT_SECRET "$MAIN_AUTH_JWT_SECRET"
+  require_distinct DEVELOP_AUTH_OPERATOR_TOKEN "$DEVELOP_AUTH_OPERATOR_TOKEN" MAIN_AUTH_OPERATOR_TOKEN "$MAIN_AUTH_OPERATOR_TOKEN"
+  require_distinct DEVELOP_AUTH_JWT_SECRET "$DEVELOP_AUTH_JWT_SECRET" DEVELOP_AUTH_OPERATOR_TOKEN "$DEVELOP_AUTH_OPERATOR_TOKEN"
+  require_distinct MAIN_AUTH_JWT_SECRET "$MAIN_AUTH_JWT_SECRET" MAIN_AUTH_OPERATOR_TOKEN "$MAIN_AUTH_OPERATOR_TOKEN"
+  require_distinct DEVELOP_AUTH_JWT_SECRET "$DEVELOP_AUTH_JWT_SECRET" MAIN_AUTH_OPERATOR_TOKEN "$MAIN_AUTH_OPERATOR_TOKEN"
+  require_distinct MAIN_AUTH_JWT_SECRET "$MAIN_AUTH_JWT_SECRET" DEVELOP_AUTH_OPERATOR_TOKEN "$DEVELOP_AUTH_OPERATOR_TOKEN"
+
+  require_value GOTRUE_DB_MAX_POOL_SIZE "${GOTRUE_DB_MAX_POOL_SIZE:-}"
+  [[ "$GOTRUE_DB_MAX_POOL_SIZE" =~ ^[1-9][0-9]*$ ]] || fail_config 'GOTRUE_DB_MAX_POOL_SIZE must be a positive integer'
   if [[ -n "${GOTRUE_MAILER_AUTOCONFIRM:-}" ]]; then
     [[ "$GOTRUE_MAILER_AUTOCONFIRM" == 'true' || "$GOTRUE_MAILER_AUTOCONFIRM" == 'false' ]] || fail_config 'GOTRUE_MAILER_AUTOCONFIRM must be true or false'
   fi
-
-  local expected_database_url
-  expected_database_url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable&search_path=auth"
-  [[ "$GOTRUE_DB_DATABASE_URL" == "$expected_database_url" ]] || fail_config 'GOTRUE_DB_DATABASE_URL must match the PostgreSQL settings, internal db:5432 endpoint, and auth search path'
+  require_value TZ "${TZ:-}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

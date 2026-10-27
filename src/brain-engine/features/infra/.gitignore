@@ -5,10 +5,16 @@
 *.secret
 *.token
 
-# Database artifacts and disposable validation output
+# Database artifacts and external operational output
 *.dump
 *.backup
 *.partial
 backups/
-acceptance-artifacts/
 tmp/
+
+# Generated operator binary and sanitized operational evidence
+tools/mindforge-infra
+*.manifest.json
+*.evidence.json
+promotion-evidence/
+restore-evidence/
