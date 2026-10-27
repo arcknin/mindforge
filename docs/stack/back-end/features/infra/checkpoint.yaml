@@ -1,12 +1,18 @@
 schema_version: 1
 managed_by: orchestration-flow
 feature: infra
-status: paused
+status: complete
 contract:
   path: contract.md
-  revision: 2
+  revision: 6
 tdd: yes
-implementation_authorized_at: "2026-09-08T14:21:28-03:00"
+implementation_authorized_at: "2026-09-30T20:27:50Z"
+implementation_authorized_batches: [B01, B02, B03]
+local_implementation_authority:
+  owner_confirmed_at: "2026-09-30T20:27:50Z"
+  source: "Owner message: se esta pronto esta autorizado, pode orquestrar por favor"
+  authorized_batches: [B01, B02, B03]
+  scope: "Local code and tests only; no VM, SQL execution, commit, push, deployment or real-data operation."
 workspace: null
 active_task: null
 active_repositories: []
@@ -22,9 +28,36 @@ completed_summary:
   - Integrated review passed with no P0-P3 findings; disposable local run e41cb7e73e6adf9e passed the full acceptance matrix after one failed disposable attempt c269c9bf6b004dd6.
   - VOLUME-IDENTITY-001 restored the logical volume name mindforge-postgres-data; local disposable run 1cfd5b80c54c693f passed the full acceptance matrix and project infra renders infra_mindforge-postgres-data.
   - The corrected 28-file package was deployed over the original VM checkout after a validated external backup and recoverable snapshot; DB/Auth were recreated against the protected original volume and final independent inspection passed.
+  - Contract revision 3 was formalized as ready_for_owner_approval with one persistent PostgreSQL cluster, separate mindforge_develop and mindforge_main databases, isolated Auth per database and immutable develop-first migration promotion.
+  - "2026-09-19 read-only approval analysis completed: develop-first topology is clear, but the minimum proof for feature SQL verification, main backup validation and per-target audit still needs owner decisions."
+  - "A bounded infra/tools utility is feasible; defer creation until contract revision 3 is approved and the new code plan scopes its static preparation and audit behavior."
+  - "Owner SQL/tool decisions were formalized in pending contract revision 3: feature-owned versioned product SQL, target-specific evidence, a fresh verified main dump before promotion, and a future Go operations binary with guarded backup/dump, restore, preflight, apply, promote and audit capabilities."
+  - "Practical restoration of a fresh dump is deferred outside revision 3; restore remains a guarded recovery capability and backup checks do not prove restore."
+  - "Owner explicitly approved infra contract revision 3 on 2026-09-19; tdd: yes remains selected and implementation authority remains separate."
+  - "Code plan revision 4 is complete for contract revision 3 with serial B01-B06, TDD, the two-database/two-Auth topology, guarded Go operations tool and VM-only SQL boundary."
+  - "Owner authorized local implementation of B01 and B02 only on 2026-09-19; matching scoped metadata is recorded in contract revision 3 and plan revision 4."
+  - "B01 completed its local TDD cycle: initial static config test failed on the missing revision-3 valid configuration, then topology/configuration/bootstrap and focused static checks passed."
+  - "B02 completed its local TDD cycle: missing Go tool APIs produced the expected red, then the CLI foundation, static audit, empty feature catalog and infrastructure evidence migration passed focused local checks."
+  - "On 2026-09-19 the owner explicitly authorized local orchestration and execution of the remaining four plan revision 4 batches B03-B06, in serial order; TDD remains yes. VM/database/backup operations, commit and push remain separate."
+  - "B03 completed its local TDD cycle: explicit-target preflight/apply, target evidence and thin startup/migration/inspection adapters passed focused fake-backed/static checks."
+  - "B04 completed its local TDD cycle: guarded external backup and explicit-target restore with manifest/hash/listing checks passed focused fake-backed/static checks."
+  - "B05 completed its local TDD cycle: immutable develop-first promotion to main with a fresh validated main backup, drift guard and target evidence passed focused fake-backed/static checks."
+  - "B06 completed its local TDD cycle: obsolete disposable runners were removed, scripts and runbooks were aligned with the VM-only two-target workflow, and the full local static/unit/Go checks passed."
+  - "2026-09-23 owner authorized read-only inspection of the designated VM. The target identity was confirmed separately; no database mutation or other VM operation was authorized."
+  - "2026-09-23 read-only VM inventory found the protected original infra stack still running with one application database; the revision-3 two-target topology is absent. The inspection stopped before Brain Core preflight or any migration."
+  - "2026-09-23 owner clarified that the existing database mindforge is main/production and retains its name. Contract amendment INFRA-A03 was drafted as revision 4 for owner approval; no plan, code or VM operation was authorized by that clarification."
+  - "2026-09-23 owner confirmed mindforge as physical production/main and separate mindforge_develop as the develop target, approving contract revision 4 and INFRA-A03. The accidental UI click was not used as approval; TDD remains yes and implementation authorization for revision 4 remains null."
+  - "2026-09-23 owner separately authorized local plan/code/test adaptation for contract revision 4, including the existing infra operator and explicit additive develop provisioning path. Contract records source-registration time; VM/SQL/backup/production mutation, commit and push remain excluded."
+  - "2026-09-23 planner drafted code plan revision 5 with four serial local TDD batches and parsed its YAML; root requested an in-plan correction so absent develop does not interrupt the existing production/main Auth service."
+  - "2026-09-23 code plan revision 5 was frozen after B03 startup correction; four serial TDD batches B01-B04, YAML and git diff --check passed."
+  - "2026-09-23 revision-4 B01 completed TDD locally: expected config/audit reds, then static config/compose, Go audit, Bash syntax, Compose render-only and git diff --check green; main target is mindforge with retained Auth service and protected volume identity."
+  - "2026-09-23 B02 plan correction added migrations/baseline.go and its focused test to the B02 allowed scope because authoring pending migration 0005 changes its pinned SHA-256; 0001-0004 remain immutable. Plan YAML/disjoint scopes and git diff --check passed."
+  - "2026-09-23 revision-4 B02 completed TDD locally: target/provisioning tests red before implementation, then Go tool tests/vet/build, unit migrations and git diff --check green. Operator names physical main mindforge and offers explicit add-only develop provisioning after two read-only inventories; pending 0005 hash was updated without changing 0001-0004."
+  - "2026-09-23 revision-4 B03 completed TDD locally: 25 adapter assertions red before implementation, then unit operations, Bash syntax, executable-bit and git diff --check green. Existing production main remains untouched when develop is absent/incomplete; startup never calls additive provisioning."
+  - "2026-09-23 revision-4 B04 completed TDD locally: 12 runbook assertions red before documentation update, then static runbook hygiene, Bash syntax and git diff --check green. Active infra README no longer names mindforge_main."
+  - "2026-09-23 integrated local validation passed static all, unit all, Go tool tests/vet, Bash syntax across 17 scripts and git diff --check. One stale Auth migration-service assertion was corrected within B02 scope before final green; active infra sources have no mindforge_main target."
 remaining:
-  - "Optional owner-authorized cleanup of retained disposable local test volumes; this does not block the completed infra delivery."
-  - "Amend contract revision 2 before any new migration validation: owner decision on 2026-09-18 requires SQL to be authored locally and executed only on the owner-designated infrastructure/VM, never against temporary or disposable Docker/PostgreSQL targets."
+remaining: []
 evidence:
   - docs/stack/back-end/features/infra/contract.md
   - docs/stack/back-end/features/infra/plan.md
@@ -50,12 +83,58 @@ evidence:
   - "Identified private test VM final deploy: exact 28-file surface and modes verified; up.sh .env infra PASS; infra-db-1 and infra-auth-1 running/healthy; infra-db-1 mounts infra_mindforge-postgres-data read-write; PostgreSQL 16.15, vector 0.8.6, Auth /health 200, ledger 0001-0004 without drift/orphan, zero domain tables, loopback bindings only."
   - "Root final read-only verification: inspect.sh PASS; /infra-db-1 running/healthy with infra_mindforge-postgres-data mounted read-write; /infra-auth-1 running/healthy; host bindings remained loopback-only."
   - "Scoped regression cleanup: infra_postgres-data was verified unreferenced and distinct from the protected volume, then removed; final inspect.sh exited 0 and infra_mindforge-postgres-data remained mounted read-write with one reference."
+  - "Contract revision 3 documentary validation: frontmatter is ready_for_owner_approval with tdd yes; INFRA-A02 records the durable develop-first topology; git diff --check passed."
+  - "2026-09-19 read-only analysis: contract revision 3, stale plan revision 3, Brain Core B03 handoff and existing infra scripts/tests were inspected; infra static all, unit migrations, Bash syntax and git diff --check passed without database or VM access."
+  - "2026-09-19 Git observation: feat/brain-core-foundation tracks origin/feat/brain-core-foundation; the checkout has pre-existing modified and untracked Brain Core/infra work, preserved without commit or push."
+  - "2026-09-19 contract formalization: owner clarifications on product SQL migrations, per-target evidence, main dump checks, guarded Go tool actions, agent execution authority and deferred restore proof were written into revision 3; no VM/database operation occurred."
+  - "2026-09-19 owner approval: contract revision 3 frontmatter records approved and owner_approved_at 2026-09-19T18:58:04Z; git diff --check passed."
+  - "2026-09-19 code plan revision 4: contract_revision 3, tdd yes, implementation_authorized_at null, serial B01-B06; structural plan checks and git diff --check passed without runtime."
+  - "2026-09-19 scoped implementation authority: contract and plan frontmatter record implementation_authorized_at 2026-09-19T19:20:11Z and implementation_authorized_batches [B01, B02]; YAML parsing and git diff --check passed."
+  - "B01 worker returned complete: causal expected-red, static config/compose green, Bash syntax green, docker-compose config render-only green; root repeated static config/compose and git diff --check with exit 0."
+  - "B02 worker returned complete: causal Go API expected-red; go test/vet/build, local audit, unit migrations, static runbook-hygiene, Bash syntax and git diff --check exited 0. Root repeated go test/vet, unit migrations, static runbook-hygiene and git diff --check with exit 0."
+  - "2026-09-19 owner message in the active orchestration task: execute the other four batches, B03-B06. This supersedes the prior B01-B02-only execution boundary for local code work; contract and plan frontmatter remain historical until separately synchronized."
+  - "B03 expected-red: go test ./features/infra/tools/internal/operations failed on absent operations/evidence packages; executor then passed Go tests/vet/build, unit migrations/operations, Bash syntax and git diff --check. Root repeated Go tests/vet, unit migrations/operations, Bash syntax and git diff --check with exit 0."
+  - "B04 expected-red: compile failed on absent Backup/Restore APIs and evidence helpers; executor passed Go tests/vet/build, unit operations, Bash syntax and git diff --check. Root repeated Go tests/vet/build with GOCACHE in /tmp, unit operations, Bash syntax and git diff --check with exit 0."
+  - "B05 expected-red: compile failed on absent Promote/PromoteRequest; executor passed Go tests/vet/build, unit migrations/operations and git diff --check. Root repeated those checks with GOCACHE in /tmp and exit 0."
+  - "B06 expected-red: static all failed on 30 causal obsolete-runtime and documentation assertions before implementation. Executor passed static all, unit all, Go tests/vet/build, Bash syntax, render-only docker-compose config and git diff --check. Root repeated static all, unit all, Go tests/vet/build, Bash syntax, git diff --check, and confirmed OpenAPI endpoints remains empty; all exited 0."
+  - "2026-09-23 designated-VM read-only inventory: strict SSH host-key match; infra-db-1 and infra-auth-1 healthy; protected infra_mindforge-postgres-data mounted on infra-db-1; PostgreSQL 16.15 read-only transaction found exactly mindforge and postgres databases, with no mindforge_develop or mindforge_main. No DDL, backup, service or volume operation occurred."
+  - "2026-09-23 follow-up READ ONLY catalog inventory in mindforge: non-system schemas auth, infra, public; auth has 23 tables, 1 sequence and 88 indexes; infra has 1 table and 1 index; no public relations or domain tables observed. infra.migration_ledger lists IDs 0001-0004. In-memory Auth configuration comparison points infra-auth-1 to mindforge; no user rows or secret values were read into the report."
+  - "2026-09-23 contract revision-4 draft: INFRA-A03 records mindforge as physical main/production target, preserves its data/volume/Auth binding, proposes carrying forward separate mindforge_develop, and marks plan revision 4/code target assumptions stale. Frontmatter YAML and git diff --check passed; no runtime or implementation validation occurred."
+  - "2026-09-23 revision-4 local completion: bash src/brain-engine/features/infra/tests/run.sh static all; bash src/brain-engine/features/infra/tests/run.sh unit all; go test ./features/infra/tools/...; go vet ./features/infra/tools/...; Bash syntax across 17 infra scripts; git diff --check: all passed."
 limitations:
   - The corrected package is deployed on the identified test VM only; retained disposable local test volumes remain preserved pending separate cleanup authority.
   - Evidence proves the identified local environment and authorized test VM only; production, Internet, LAN, firewall, DNS, TLS, Coolify and real data remain outside scope.
-  - "At this public-repo checkpoint, root Git metadata exists on branch main with no commits before this checkpoint; tracking, upstream, publication and Git cleanliness are not yet verifiable."
+  - "Historical first-publication evidence predates the current feature branch; it does not establish commit or push for the present dirty worktree."
   - No Mindforge product endpoint was created or affected; contracts/openapi/registry.yaml remains empty.
   - "Disposable-environment evidence above remains valid historical evidence only; it does not authorize repeating that method after the owner decision recorded on 2026-09-18."
-blocker: "Contract revision 2, plan revision 3 and the current disposable runners conflict with the owner decision that migrations must execute only on the designated infrastructure/VM."
-resume_from: "Use a separate feature-contract interaction to amend the infra contract and invalidate or replace disposable validation tactics before executing any Brain Core SQL; VM connection metadata is stored only in the ignored local .env.vm.local file."
-updated_at: "2026-09-18T17:45:35Z"
+  - "Current owner authorization permits local B01-B06 code work only; no VM access, SQL execution, database mutation, real backup handling, commit or push is included."
+  - "Plan revision 4 code is implemented and locally validated, but the current two-database/Auth topology, installed catalog, migration behavior, backup, restore and promotion are unverified on the designated VM."
+  - "B01 proof is static/render-only; no Docker daemon, PostgreSQL, Auth, SQL, VM or real cluster topology was exercised."
+  - "B02 proof is local/static/fake-backed; 0005 was not applied, no installed target ledger was read, and database operations are not implemented until B03."
+  - "Legacy migration/startup script assertions were removed from the B02 unit-migrations selection; B03 owns their replacement against explicit target operations."
+  - "B03 proof is local/static/fake-backed only; B04 backup/restore tests and executable behavior remain pending."
+  - "B04 backup/restore proof is fake-backed/static only; no real dump, archive, restore or VM behavior was tested."
+  - "B05 promotion proof is fake-backed/static only; no real main backup, SQL application, catalog comparison or VM behavior was tested."
+  - "B06 removed only the three plan-allowlisted disposable scripts/tests. Native docker compose was unavailable; docker-compose rendered configuration without starting a daemon."
+  - "Plan revision 4 frontmatter still shows the earlier B01-B02-only revision-3 authorization, while this checkpoint records the owner's later B03-B06 local authorization. Approved contract revision 4 carries no implementation authorization, and the plan's mindforge_main target assumptions are stale."
+  - "The 2026-09-23 read-only inventory proves database names and observed container/volume state only; it does not verify revision-3 runtime, installed migration catalogs, Auth isolation, backup/restore, Brain Core schema, or data contents. Earlier no-VM-authorization text predates the owner's read-only inspection authorization."
+  - "The 2026-09-23 catalog inventory establishes object names and counts, not table contents, Auth user count, data-retention requirements, backup validity, or safety of deleting or replacing the legacy database."
+  - "Approved contract revision 4 supersedes physical main target mindforge_main with mindforge; current plan revision 4 and code remain stale. The new local implementation authority does not authorize VM mutation, SQL execution, real backup, commit or push."
+  - "Revision-4 adaptation is proven locally only. The designated VM still has mindforge and postgres but no mindforge_develop; no new code, SQL, migration 0005, Auth split, backup, restore or promotion was executed or verified there."
+continuation_check:
+  checked_at: "2026-09-30"
+  scope: "Read-only repository and contract investigation; no new tests, VM, database or network access."
+  worker_ownership: "Three read-only leaf investigations completed; root synthesized and updated checkpoint."
+  authority: "Infra contract r6 approved with TDD yes; no r6 implementation batches authorized."
+  historical_vm_evidence: "2026-09-29 read-only inventory recorded mindforge, nsrdb and postgres; mindforge_develop absent. Owner identified nsrdb as another project's database. This was not rechecked."
+  evidence_limit: "Current code and plan were inspected, not executed. Historical tests do not prove current VM behavior."
+  planning_result: "Infra plan r6 is ready against contract r6 with serial B01 passive nsrdb coexistence, B02 sole operator/catalog/ledger after Brain Core B03, and B03 runbook."
+  b01_result: "Infra r6 B01 TDD complete: expected-red on nsrdb inventory, then Go operations tests and shell unit operations passed. Evidence is local/fake-backed; no VM or SQL."
+  brain_dependency: "Brain Core r4 B03 complete locally: feature-owned preflight/verify SQL prepared and standalone psql envelopes removed; canonical payload hash unchanged. Infra B02 may now consume these sources."
+  b02_result: "Infra r6 B02 TDD complete: global 0006 catalog maps the unchanged Brain Core payload/checks; operator applies source, verify and infra ledger in one transaction. Go tests/vet/build, shell unit/static/syntax, local audit and diff check passed. Evidence remains local/fake-backed."
+  b03_result: "Infra r6 B03 TDD complete: 14 new runbook assertions failed before documentation changes, then runbook-hygiene, unit migrations, Bash syntax and diff check passed. The planned static migrations selector does not exist; unit migrations runs the underlying test."
+  vm_preflight_result: "Owner-authorized read-only inspection on 2026-09-30 succeeded with strict SSH host-key checking. Compose project infra has healthy infra-db-1 and infra-auth-1; the protected volume infra_mindforge-postgres-data is mounted on infra-db-1. The database names are mindforge, nsrdb and postgres; mindforge_develop is absent. Main Auth connects to mindforge. PostgreSQL is 16.15 and vector is 0.8.6. The mindforge infra ledger contains 0001-0004 with hashes matching the local baseline; infra evidence tables from 0005 are absent. The mindforge_develop role, develop Auth container and brain_core schema are absent. No connection to nsrdb, user-data query or mutation occurred."
+  vm_preflight_limit: "The current VM source/binary revision, backup validity, Auth login flow, SQL 0005/0006 execution and develop runtime remain unverified. One attempted PostgreSQL login as role postgres was denied; subsequent read-only catalog queries used configured role mindforge."
+blocker: "The designated VM has no mindforge_develop target or develop Auth and has not applied infra migration 0005 or feature migration 0006. Local operator changes are not proven deployed. Further VM file/service/database operations require separate owner authority."
+resume_from: "Prepare a concrete, reviewable VM operation for current source/operator delivery and additive mindforge_develop provisioning while preserving mindforge, nsrdb and the protected volume; seek explicit authority for each VM/target operation. Apply/verify 0005 and Brain Core 0006 in develop only under separate SQL authority; main promotion requires separate production authority and validated backup."
+updated_at: "2026-09-30T21:59:50Z"

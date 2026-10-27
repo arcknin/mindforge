@@ -1,0 +1,70 @@
+schema_version: 1
+managed_by: spec-drive
+feature: infra
+task: develop-studio
+status: complete
+stage: complete
+spec:
+  path: spec-01-main.md
+  revision: 1
+discovery: discovery.md
+related_specs:
+  - ../../../stack/back-end/features/infra/contract.md
+  - ../../brain/brain-core/brain-core-contract.md
+approvals:
+  owner_spec: "Outcome/local execution approved: distinct Studios, common db.home.arpa portal, TDD yes and main administrative access. Concrete external operation approved by owner."
+  execution: "Local planning/preparation/implementation requested by owner on 2026-10-08."
+  external_authority: "Owner explicitly approved prepared VM/SQL/Auth/Studio/Nginx/Mac-hosts operation: beleza agora pode aplicar então la na vm por favor (2026-10-08). Includes durable synthetic develop proof."
+tdd_decision: "yes"
+workspace: /Users/arcknin/Desktop/mindforge
+active_task: develop-studio
+active_repositories: [mindforge]
+completed_summary:
+  - "Owner confirmed successful main/develop Studio access after manual host setup; previous access pending closed by owner report, not fresh independent inspection."
+  - "VM deploy complete: Studio/Meta healthy, portal/four vhosts nginx-t/reload PASS; HTTP401 anonymous and login200; SQL target/table/synthetic-row proof PASS."
+  - "Existing main/NSR container IDs/start times/volumes and main ledger hashes preserved; runtime-evidence.md records proof and rollback."
+  - "VM: owner-approved provision/extensions/infra0001-0005/Auth develop/Brain0006 applied successfully. Main/NSR unchanged by these operations."
+  - "VM real Engine/PostgresStore proof PASS: bootstrap, own observe, isolation, nested layer, stable rename, stale CAS; durable synthetic rows authorized."
+  - "Provision helper unsupported source-root fixed after VM refused before mutation; TDD regression red/green and corrected sealed r2 release verified."
+  - "Owner selected distinct Studios/common portal, TDD yes and administrative main Studio."
+  - "Mandatory sources/Git rechecked; local Go and infra static/unit baseline passed."
+  - "Host Nginx confirmed on port80; new portal/three-vhost design prepared without NSR backend changes."
+  - "Package source-boundary TDD: missing builder expected-red, then four source/hash/private-file/output/symlink checks green."
+  - "Client-host/config and develop-only verifier completed locally; focused Go/vet/build and TDD checks passed."
+  - "Studio/Meta/portal complete locally: 12 TDD tests passed including standalone Compose render."
+  - "Fixed metadata preflight passed local TDD and actual READ ONLY VM checks including absent-relation variant."
+  - "Develop-only canonical0001 extension bootstrap completed locally; owner ledger + atomic admin extensions/ledger, no dev superuser or main DDL."
+  - "All integrated Go race tests/vet, infra static/unit, 12 Studio tests, four package tests and fake VM-helper guard checks passed."
+  - "Linux/amd64 static binaries and sealed source package prepared; manifest checked against current sources, private files excluded."
+remaining: []
+workers:
+  - task: /root/infra
+    role: implementation leaf
+    status: completed
+    mutable_ownership: "new bootstrap_extensions operation/CLI dispatch; VM discovery was read-only"
+  - task: /root/brain_core
+    role: implementation leaf
+    status: completed
+    mutable_ownership: "config/client-host + scoped validator/fixtures; new verify-brain-core/brainproof packages"
+  - task: /root/produto_client
+    role: implementation leaf
+    status: completed
+    mutable_ownership: "studio subtree during implementation; subsequent API/Table Editor research read-only"
+evidence:
+  - "Helper TDD regression and infra static all rechecked PASS after flag correction; Mac LAN explicit-host HTTP401 PASS."
+  - "runtime-evidence.md: real deployment, target SELECTs, schema metadata and durable Engine proof."
+  - "Applied r2 archiveSHA256 2bd55dcb2ea932e16e6dff0e404aa8216ab95dc6c7ebde3547d464bffc0752d0; release /opt/mindforge/releases/develop-studio-20261008-r2."
+  - "Git HEAD 0204ba4, branch feat/brain-core-foundation; dirty work preserved."
+  - "GOTOOLCHAIN=local GOPROXY=off GOCACHE=/private/tmp/mindforge-develop-studio-gocache go test ./...: PASS."
+  - "bash src/brain-engine/features/infra/tests/run.sh static all and unit all: PASS."
+  - "Integrated go test -race -count=1 ./... and go vet ./...: PASS."
+  - "Studio tests 12 PASS, Compose render synthetic; package tests four PASS; run-vm helper fake-Docker boundary PASS."
+  - "Raw metadata and bootstrap-identity queries passed READ ONLY on VM; identity query returned17fields."
+  - "/private/tmp/mindforge-develop-studio-release-20261008/mindforge-develop-studio.tar.gz"
+  - "ArchiveSHA256 0eb61dcb59af352eadd2f9ed1a79e721220727f7da4f474607a74a43de232b51; 81 source files + two Linux static binaries + manifest checked."
+limitations:
+  - "Visual/browser interaction and unrelated dashboard tabs not verified; HTTP/API/SQL/Engine/catalog runtime verified."
+  - "Private credentials, machine-specific IP/SSH access and secrets are excluded from versioned artifacts."
+blocker: null
+resume_from: "Infra unit complete. New planning-only task: docs/features/brain/manual-online/manual-online-checkpoint.yaml. Do not reapply VM/SQL."
+updated_at: '2026-10-09T01:03:00Z'

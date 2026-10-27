@@ -1,0 +1,95 @@
+schema_version: 1
+managed_by: spec-drive
+feature: brain
+task: api-auth
+stage: owner_google_callback_and_authenticated_acceptance
+status: delivered_google_console_pending
+spec:
+  path: spec-01-main.md
+  revision: 1
+discovery: discovery.md
+workspace: /Users/arcknin/Desktop/mindforge
+related_specs:
+  - ../manual-online/spec-01-main.md
+  - ../android-workspace/spec-01-main.md
+approvals:
+  architecture_direction: owner_20261013_client_api_only_including_auth
+  owner_spec: approved_20261013
+  http_contract: approved_five_routes_20261013
+  execution: approved_backend_client_TDD_20261013
+  external_authority: approved_develop_VM_cutover_20261013_preserve_protected_services
+  Google_console: owner_will_add_new_callback_after_delivery
+  device_install_visual_QA_commit_push: not_authorized
+tdd_decision: 'yes'
+completed_summary:
+  - Cinco contratos promovidos antes do código; fachada/backend/client implementados com TDD.
+  - Client usa somente API; dados locais preservados por namespace; sessão Auth versionada exige novo login.
+  - PKCE por tentativa e cleanup isolados, refresh single-flight e identidade estável cobertos.
+  - Go test/race/vet e builds Linux/APK/Web passaram; Flutter117 testes/analyze passaram.
+  - Proxy Web sem bypass Auth e com raw-path guard; helper abre somente11001.
+  - API/Auth develop/Web aplicados;22 checks reais e47 containers protegidos preservados.
+  - Callback cancellation real corrigido para marcador sb vazio conhecido; prova repetida passou.
+remaining:
+  - Owner adicionar http://127.0.0.1:11001/v1/auth/callback ao cliente OAuth Google.
+  - Owner instalar APK/encaminhar API por ADB ou abrir Web e testar sessão autenticada/dados.
+  - Registrar provas de callback de sucesso, token, user, logout e CRUD/sync sem promover por mocks/build/401.
+workers:
+  - {task: auth_facade_research, model: gpt-5.6-luna, effort: xhigh, role: research_leaf_read_only, status: completed}
+  - {task: api_auth_backend, model: gpt-5.6-luna, effort: max, role: leaf, scope: auth_api_cmd, status: completed_with_runtime_compatibility_fix}
+  - {task: api_auth_client, model: gpt-5.6-luna, effort: max, role: leaf, scope: mindforge_client, status: completed_117_tests_analyze}
+  - {task: api_auth_infra, model: gpt-5.6-luna, effort: max, role: leaf, scope: auth_google_and_web_infra_local, status: completed_23plus9_tests}
+principal_ownership: contracts_docs_source_integration_final_builds_VM_cutover_runtime_proof
+endpoint_states:
+  auth_authorize: {contract_status: approved, implementation_status: implemented, runtime_status: verified, coverage: native_and_web_initiation_302_only}
+  auth_callback: {contract_status: approved, implementation_status: implemented, runtime_status: pending, coverage: real_valid_flow_denial_302_success_code_pending}
+  auth_token: {contract_status: approved, implementation_status: implemented, runtime_status: pending, coverage: real_invalid_PKCE_400_only}
+  auth_user: {contract_status: approved, implementation_status: implemented, runtime_status: pending, coverage: real_invalid_bearer_401_only}
+  auth_logout: {contract_status: approved, implementation_status: implemented, runtime_status: pending, coverage: no_bearer_401_global_scope_400_only}
+  core_documents: previous_contract_implementation_runtime_states_preserved
+local_validation:
+  Go: test_all_race_API_auth_cmd_vet_all_build_PASS
+  final_API_correction: Auth_API_tests_race_vet_PASS
+  Flutter: 117_tests_PASS_analyze_clean
+  infra: Auth23_Web9_tests_PASS
+  yaml_links_diff_check: PASS
+artifacts:
+  API_linux_package: /private/tmp/mindforge-api-auth-package-r3
+  API_binary_sha256: b6a563f1160667b96359ea770b8062431c688fb392bcd17d7a85b3fe12122001
+  APK: /Users/arcknin/Desktop/mindforge/src/mindforge-client/build/app/outputs/flutter-apk/app-debug.apk
+  APK_bytes: 176747747
+  APK_sha256: 808fef63509667a56fcb82adf63d2d56d12a1019443887327cf7768e20dadc42
+  APK_signature_v2: verified
+  Web_main_js_sha256: fc0b5f3e6ca5fed8dd985ebb2b5a30e1f4f5e2c370ddf3592074a96071ca5329
+vm_result:
+  release: /opt/mindforge/releases/api-auth-20261013-r1
+  API: mindforge/brain-engine:api-auth-20261013-r2
+  Web: mindforge/web-develop:api-auth-20261013-r2
+  Auth: supabase/gotrue:v2.196.0
+  checks_passed: 22
+  host_vhost_checks_passed: 3
+  total_containers: 50
+  protected_containers_exactly_preserved: 47
+  environment_bind_network_comparisons: PASS
+  operator_SQL_or_new_migrations: not_executed
+  accounts_create_delete: not_executed
+local_transport:
+  helper_session: 92545
+  listener_pid: 18043
+  binding: 127.0.0.1:11001
+  forward: API_develop_18087
+  Auth_11000_listener: absent_at_final_check
+  device_ADB_install: owner_only_not_executed
+evidence:
+  - discovery.md
+  - implementation-evidence.md
+  - vm-develop-plan.md
+  - vm-runtime-evidence.md
+  - test-guide.md
+  - ../../../../contracts/openapi/auth.openapi.yaml
+limitations:
+  - Google Console configurado pelo owner depois da entrega; login completo ainda não verificado.
+  - Sem consentimento Google, sessão autenticada real, device install ou QA visual nesta execução.
+  - Web documental e novo protocolo global de sincronização continuam fora.
+blocker: null
+resume_from: test-guide.md; após URI Google/aceite do owner, registrar runtime real por operação sem reimplantar por inércia.
+updated_at: '2026-10-14T03:47:30Z'

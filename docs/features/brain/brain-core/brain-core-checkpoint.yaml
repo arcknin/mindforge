@@ -5,8 +5,13 @@ task: brain-core
 status: complete
 contract:
   path: brain-core-contract.md
-  revision: 2
+  revision: 4
 workspace: null
+local_implementation_authority:
+  owner_confirmed_at: "2026-09-30T20:27:50Z"
+  source: "Owner message: se esta pronto esta autorizado, pode orquestrar por favor"
+  authorized_batches: [B03]
+  scope: "Local code and tests only; no VM, SQL execution, commit, push, deployment or real-data operation."
 active_task: null
 active_repositories: []
 completed_summary:
@@ -16,6 +21,10 @@ completed_summary:
   - "Code plan revision 1 is complete and ready with sequential batches B01 deterministic Go core and B02 PostgreSQL persistence/integration."
   - "B01 completed its TDD cycle: the initial package-level test failed on absent Brain Core types, then ATDD-01..ATDD-16 passed with the deterministic Engine, ports and test-only Store."
   - "B02 completed its TDD cycle: the initial package-level test failed on absent PostgresStore symbols, then the isolated product migration, pgx adapter and accumulated static/unit/race checks passed."
+  - "Brain Core foundation and the owner migration boundary were committed and pushed to origin/feat/brain-core-foundation at 0204ba4218bf963b8d2497e6ddb04b4a93803a95."
+  - "Code plan revision 2 preserves B01/B02 and adds B03 for a local fail-closed SQL/psql migration envelope; it explicitly stops before VM access or SQL application."
+  - "B03 completed its TDD cycle: preflight and apply psql envelopes, product-local SHA-256 ledger, transaction/advisory-lock barriers and fail-closed catalog handling were added without changing the DDL payload."
+remaining:
 remaining: []
 evidence:
   - docs/features/brain/brain-core/brain-core-contract.md
@@ -29,12 +38,26 @@ evidence:
   - "B02 dependency resolution attempt: go mod tidy failed because proxy.golang.org could not be resolved inside the sandbox."
   - "B02 dependency resolution completed after the exact elevated go mod tidy; pgx/v5 v5.7.4 is pinned and go.sum was generated."
   - "B02 relevant-green verified by the orchestrator: verbose Brain Core tests passed with the PostgreSQL integration test explicitly skipped; race tests, go vet ./..., infra static/unit, gofmt -d, registry-empty check and git diff --check passed."
+  - "Published branch origin/feat/brain-core-foundation at 0204ba4218bf963b8d2497e6ddb04b4a93803a95; .env.vm.local and ignored owner files were excluded."
+  - "Plan revision 2 local validation: Brain Core unit/race, go vet, infra static and git diff --check passed without database access."
+  - "B03 payload SHA-256 1c8e0e960f728662062bd73bf791bce7b6cee092cff099375fe4455660f0f7b9 matches both psql envelopes."
+  - "B03 root verification: Brain Core unit/race, go vet, gofmt, forbidden-pattern barriers, infra static suite, registry-empty check and git diff --check passed without PostgreSQL, Docker, SSH or VM access."
 limitations:
   - "Contract validation is documentary/static only; no ATDD/TDD executable test, build, database, HTTP, runtime, migration, deployment or publication was executed."
-  - "Implementation authority is local only and does not authorize commit, push, deploy, production, executed migrations or remote actions."
+  - "The owner authorized and completed commit/push for the foundation branch, but not merge, deployment, VM access or executed migrations."
   - "B01 evidence is local/unit with a mutex-protected test Store; it does not prove PostgreSQL, authentication integration, HTTP or runtime."
   - "No BRAIN_CORE_DATABASE_URL plus BRAIN_CORE_DATABASE_DISPOSABLE=1 target was available, so PostgreSQL behavior remains unverified by integration; no persistent migration was executed."
   - "No endpoint, authentication integration, HTTP runtime, client, remote environment, deployment or publication was implemented or verified."
+  - "B03 is static/local evidence only; PostgreSQL has not parsed or executed the psql envelopes, and catalog, advisory lock, transaction rollback and installed schema remain unverified."
+continuation_check:
+  checked_at: "2026-09-30"
+  scope: "Read-only repository and contract investigation; no tests, VM, database or network access."
+  worker_ownership: "Three read-only leaf investigations completed; root synthesized and updated checkpoint."
+  authority: "Brain Core contract r4 and infra contract r6 are approved; both lack new implementation authorization."
+  evidence_limit: "Plan and local code were inspected, not executed. Historical tests do not prove PostgreSQL, HTTP or VM runtime."
+  documentation_drift: "This checkpoint's completed summaries and evidence describe earlier contract revisions. Stack readmes also lag current contracts."
+  planning_result: "Brain Core plan r3 is ready against contract r4; B01/B02 historical work is preserved and residual B03 owns feature SQL checks and retirement of the standalone psql ledger route."
+  b03_result: "Brain Core r4 B03 TDD complete: expected-red for missing preflight SQL, then focused Go tests and vet passed. Canonical payload SHA-256 unchanged; preflight/verify SQL are static-only evidence, not PostgreSQL execution."
 blocker: null
-resume_from: "The authorized B01 and B02 plan is complete. Any PostgreSQL integration run, persistent migration procedure, review, commit, push, API work or deployment requires a separate explicit authorization."
-updated_at: 2026-09-17T03:58:41Z
+resume_from: "Brain Core local plan r3 is complete. Continue infra r6 B02 with the feature-owned SQL checks; VM preflight/application remain separately authorized."
+updated_at: "2026-09-30T20:39:13Z"

@@ -1,0 +1,83 @@
+schema_version: 1
+managed_by: spec-drive
+feature: brain
+task: manual-online
+status: continued_in_web_local
+stage: handoff
+spec:
+  path: spec-01-main.md
+  revision: 2
+discovery: discovery.md
+related_specs:
+  - ../brain-core/brain-core-contract.md
+  - ../../infra/develop-studio/spec-01-main.md
+approvals:
+  owner_spec: "Planning direction approved: option2 Auth+API+Flutter; macOS; Google OAuth only; TDD yes. Owner execution request now approves the presented technical spec/endpoints."
+  execution: "Owner explicitly authorized all feasible local execution without Google credentials; Google Cloud setup deferred."
+  external_authority: "Owner authorized prepared B04 Auth develop/API VM/tunnel operation by reply: beleza temos então o oauth configurado eu acho ne? podemos prosseguir? after concrete authorization question. No main/NSR mutation, Xcode install/license, cloud changes, real-user test writes or publication/commit/push."
+tdd_decision: "yes"
+workspace: /Users/arcknin/Desktop/mindforge
+active_task: manual-online
+active_repositories: [mindforge]
+completed_summary:
+  - "Owner paused work until a later session, declined Xcode storage/install and requested Android as the next client target. No Android changes authorized/executed now."
+  - "B04 services applied: selective Google Auth develop + API nonroot/private18087, health/settings302 redirect/basic scopes/negative401 PASS."
+  - "Real Mac tunnel11000/11001 active (exec session3282); main/NSR/DB/Studios IDs/startups/volumes preserved."
+  - "Owner clarified normal Google sign-in without manually allowlisting emails; Google identity-only Testing exception and GoTrue default scopes verified, plan corrected."
+  - "Owner supplied Google credentials; stored outsideGit in private0600 configuration and local validator PASS, values omitted."
+  - "Concrete B04 VM/Auth/API/tunnel operation prepared in spec; no external mutation performed."
+  - "All local scopes complete: API runtime + Flutter source/UI and helpers; no dummy login or alternate auth provider."
+  - "Principal final verification: aggregate Go race, Flutter41 tests/analyze and plists PASS; HTTP full local trust-chain test PASS."
+  - "B02 Auth/API and runtime composition locally implemented; aggregate Go race/vet + infra static/unit PASS after authorized loopback test escalation."
+  - "Credential-free Linux/amd64 static API package built; binary/package/source manifest hashes checked; canonical Brain SQL/checks unchanged."
+  - "Infra helper tests22 PASS: config/render/build flags/fake SSH, no daemon or VM."
+  - "Owner execution request recorded; four contracts approved and formalized in OpenAPI before producer/consumer implementation."
+  - "Three Luna/max implementation leaves dispatched in exclusive scopes; root owns runtime composition and integration."
+  - "Spec revision2: owner-required Google Cloud OAuth setup is explicit in B01, with credential handoff and B04 runtime acceptance; planning only."
+  - "Mandatory sources/current Git and Brain/Auth/client boundaries checked; prior dirty work preserved."
+  - "Three read-only Luna/xhigh leaf returns integrated; decisive local/official sources read by principal."
+  - "Owner chose macOS/Google-only/TDD; earlier email-password/SMTP interpretation superseded."
+  - "Discovery and integrated proposed spec coordinate Auth, four API contracts and Flutter through four internal delivery lots."
+  - "Tool locations checked read-only; full macOS build readiness not established."
+remaining:
+  - "Native macOS/Android delivery deferred; owner resumed as Flutter Web in ../web-local/."
+  - "Current web deployment complete; owner hosts/browser login and authenticated API proof pending."
+workers:
+  - task: /root/api_delivery
+    role: implementation leaf
+    requested_model: gpt-6-luna
+    requested_effort: max
+    status: completed
+    mutable_ownership: src/brain-engine/auth/ and api/
+  - task: /root/client_delivery
+    role: implementation leaf
+    requested_model: gpt-6-luna
+    requested_effort: max
+    status: completed
+    mutable_ownership: src/mindforge-client/
+  - task: /root/infra_delivery
+    role: implementation leaf
+    requested_model: gpt-6-luna
+    requested_effort: max
+    status: completed
+    mutable_ownership: src/brain-engine/features/infra/auth-google-develop/
+evidence:
+  - "runtime-service-evidence.md: actual VM service application/negative401/OAuth302/tunnel and preservation; full auth runtime remains pending."
+  - "implementation-evidence.md: final local proof, artifact hash and unverified native/Google/VM boundaries."
+  - "Final package /private/tmp/mindforge-manual-online-package-20261008-r2; Linux binarySHA256 29e771185d9d19a67c846e5d7f95e4d4eb2d18f716e9a06a8598952b73c62f65;19 source hashes verified."
+  - "Revision2 validation PASS: spec/checkpoint revisions aligned, explicit Google setup and planning-only authority; git diff --check PASS."
+  - "Bundled skillr resume identified manual-online with no candidate uncertainty; legacy Brain checkpoint duplicate remaining warning remains historical."
+  - "git diff --check PASS; no code/runtime tests run for planning."
+  - "PASS: YAML, four proposed routes, internal schema refs, task links, planning-only authority and prior infra closure by owner report."
+  - "PASS: 81 source hashes equal applied r2 package; no Flutter source/OpenAPI approved document created; local Markdown links resolve."
+  - "Git feat/brain-core-foundation HEAD0204ba4; pre-existing dirty work preserved."
+  - "discovery.md: source paths and primary URLs; spec-01-main.md: owner choices, proposals and bounded dependencies."
+limitations:
+  - "Google provider/redirect and API credential rejection proved live; Client Secret code exchange/full user login/app still unverified."
+  - "No Xcode install/license or native Flutter app; no authenticated product operations verified or real user/Brain test writes."
+  - "Main/NSR/Studios preserved; no public ingress/DNS/Nginx change, migration/promotion, commit or push."
+blocker: null
+resume_from: "../web-local/web-local-checkpoint.yaml and runtime-evidence.md; web deployed, Google callback SSH11000 active, human login proof next."
+updated_at: '2026-10-09T03:13:49Z'
+
+latest_owner_direction: "2026-10-09 owner replaced Android with web and authorized VM Docker publication; follow ../web-local/web-local-checkpoint.yaml. Web deployed; Mac tunnel now only11000, prior3282/11001 historical."

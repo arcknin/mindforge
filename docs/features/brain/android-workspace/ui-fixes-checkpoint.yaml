@@ -1,0 +1,33 @@
+schema_version: 1
+managed_by: spec-drive
+feature: brain
+task: android-workspace
+stage: owner_device_acceptance
+status: delivered_local_device_pending
+spec:
+  path: spec-02-ui-fixes.md
+  revision: 1
+discovery: discovery.md
+approvals:
+  execution: owner_explicit_fix_request_20261014
+  tdd: yes_from_approved_android_delivery
+  local_build: carried_from_android_delivery
+  VM_SQL_deploy_install_commit_push: out_of_scope
+workspace: /Users/arcknin/Desktop/mindforge
+workers: []
+completed_summary: [current_sources_reconciled, bounded_spec_recorded, RED_reproduced, lifecycle_and_scroll_fixed, nine_focal_tests_PASS]
+remaining: [owner_update_APK_and_confirm_no_overflow_or_red_screen]
+evidence: [known-issues.md, ui-fixes-evidence.md]
+limitations: [owner_device_acceptance_separate]
+blocker: null
+resume_from: spec-02-ui-fixes.md and test/widget/adaptive_workspace_documents_test.dart
+updated_at: '2026-10-14T15:43:02Z'
+validation:
+  focal_tests: 9_PASS
+  full_flutter_suite: 125_PASS
+  flutter_analyze: PASS
+  debug_APK: built_signature_v2_verified
+  APK_sha256: ede5314434a57855e0ef26821a24bc196c71bb724f8c9c263de6a6a81b37f911
+  APK_bytes: 176749955
+  backend_contracts_VM_data: unchanged
+  device_runtime: pending

@@ -7,7 +7,9 @@ Este diretório será a fonte canônica dos endpoints HTTP aprovados do Mindforg
 - `registry.yaml`: índice operacional de propostas e endpoints, com estados e evidências independentes.
 - `*.openapi.yaml`: contratos executáveis criados somente quando existir ao menos um endpoint aprovado.
 
-Nenhum endpoint está aprovado ou implementado neste momento. Por isso ainda não existe um documento OpenAPI com `paths`.
+As quatro operações Brain Core estão aprovadas pelo pedido de execução do owner. O contrato é [brain-core.openapi.yaml](brain-core.openapi.yaml); implementação local concluída e runtime permanece pendente.
+
+O registry acompanha o [primeiro fluxo manual macOS](../../docs/features/brain/manual-online/spec-01-main.md), com Google OAuth via GoTrue. Seus estados de contrato, implementação e runtime são independentes; credenciais Google e integração real serão preparadas depois.
 
 Uma proposta pode existir somente em `registry.yaml`. Ela só entra em `paths` de um documento OpenAPI depois da aprovação do owner.
 
@@ -51,3 +53,9 @@ Campos ainda não decididos devem permanecer explícitos como pendentes. Não us
 ## Regra de divergência
 
 Se OpenAPI, Brain Engine, testes e client discordarem, use `gate: needs_decision`. O orquestrador deve apresentar a divergência ao owner antes de alterar contrato ou comportamento.
+
+A continuação [web-local](../../docs/features/brain/web-local/runtime-evidence.md) publica o client Flutter Web e o proxy develop. Os contratos permanecem iguais e runtime dos quatro endpoints continua pendente de prova autenticada.
+
+As seis operações documentais foram aprovadas explicitamente pelo owner em 2026-10-12 após proposta no registry. Contrato: [documents.openapi.yaml](documents.openapi.yaml); spec: [backend documental](../../docs/features/brain/layer-content/spec-02-backend.md). Client/sincronização posteriores; SQL/VM/deploy dependem de autorização separada. Estados de implementação/runtime constam no registry.
+
+As cinco rotas de Auth API-only foram aprovadas pelo owner em2026-10-13. Contrato: [auth.openapi.yaml](auth.openapi.yaml); [spec](../../docs/features/brain/api-auth/spec-01-main.md). Implementação e runtime possuem estados independentes no registry. GoTrue permanece provedor interno; não confundir aprovação com corte aplicado.

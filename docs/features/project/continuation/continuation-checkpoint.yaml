@@ -1,0 +1,111 @@
+schema_version: 1
+managed_by: spec-drive
+feature: project
+task: continuation
+status: continuation_ready_for_assistant_discussion
+stage: discovery
+spec: null
+discovery: discovery.md
+related_specs:
+  - ../../brain/brain-core/brain-core-contract.md
+  - ../../../stack/back-end/features/infra/contract.md
+  - ../../brain/api-auth/spec-01-main.md
+  - ../../brain/android-workspace/spec-02-ui-fixes.md
+approvals:
+  owner_spec: pending
+  execution: "2026-10-26: current-state exploration, continuity documentation and discussion requested; owner prioritizes open assistant discussion. No new implementation authorized."
+  external_authority: "None for this recovery. Historical SSH/VM permissions belonged to their bounded tasks; no Google Console, device, VM, SQL, deployment or publication action inferred."
+  git_publication: "Owner explicitly requested commit and push of accumulated changes on 2026-10-26; implementation categorized by a read-only subagent, all documentation in one commit. No merge/deploy authorized."
+tdd_decision: undecided
+workspace: /Users/arcknin/Desktop/mindforge
+active_task: assistant_discussion_scope_not_yet_specified
+active_repositories:
+  - mindforge
+completed_summary:
+  - "Feature commits created: 782a394 persistence/operator, ce46b14 HTTP/Auth/contracts, 05284ff service surfaces, 2c17115 Flutter. Exactly 71 documentation paths retained for the single docs commit; final push proof is the Git remote reference."
+  - "Owner authorized commit/push of accumulated work. Read-only classification complete: four feature groups and one documentation group, 320 paths total. Git history/remote reference are final publication proof."
+  - "Current publication checks PASS: Go all, Flutter125, infra static/unit, Auth23/Web9/Studio12/package4. Flutter cache regenerated offline with enforced lockfile after stale temporary SDK reference."
+  - "2026-10-26 recovery: mandatory sources, current code, checkpoints, PD-023..025 and OD-017..020 inspected directly; findings appended to discovery.md."
+  - "Owner prioritized open assistant discussion. Android corrections are locally delivered; device acceptance remains unknown. No acceptance gate imposed on discussion."
+  - "Current registry parsed: 15 approved/implemented operations, authorize initiation verified and 14 runtime pending; no states promoted."
+  - "Existing correction APK hash matches ui-fixes evidence; 125 tests/analyze/build are historical results, not rerun today."
+  - "Git inspected: HEAD0204ba4, 276 untracked files including client/API/Auth, 44 changed/deleted tracked paths; all pre-existing work preserved."
+  - "Entries below describe historical deliveries, not new execution in this recovery."
+  - "Owner authorized credential-free local manual-online execution; API+Flutter+helpers delivered with local tests, Google/native/VM runtime pending."
+  - "Owner closed Studio access and selected option2/manual macOS with Google-only/TDD; planning-only successor is docs/features/brain/manual-online/."
+  - "Mandatory sources, Git state, legacy checkpoints and decisive Brain/infra sources inspected."
+  - "Brain Core r4 and infra r6 approvals located; implementation and runtime evidence remain separate."
+  - "All three read-only research returns integrated; decisive source verified directly by the principal."
+  - "Discovery records local completion, historical VM gap, documentary drift and a recommended next delivery boundary."
+  - "2026-10-08 delegated read-only SSH follow-up: Mindforge Auth uses infra-db-1/mindforge; active NSR Auth/PostgREST/worker use a separate Supabase PostgreSQL container and database postgres."
+  - "Studio feasibility concluded: installed self-hosted Studio is single-project; recommend distinct Mindforge main/develop Studio surfaces plus shared entry point, combined with pending develop runtime work. No option approved."
+  - "Owner subsequently approved distinct Studios/common portal, TDD yes and main administrative access; active execution is docs/features/infra/develop-studio/."
+remaining:
+  - "Discuss the assistant from PD-023..025 and OD-017..020; choose the first observable behavior before creating an executable spec."
+  - "Close only the memory, scope, privacy/model and MCP decisions required for that behavior; TDD for this new work remains undecided."
+  - "Background acceptance debt: Android corrections on device and Auth/session/CAS endpoint proofs. Google Console configuration today is unknown, not reconfirmed pending."
+  - "After authorized Git publication, continue the assistant discussion; do not infer implementation/VM/deploy authority from commits."
+# Earlier workers are historical; classificar_commits is the current bounded read-only assignment.
+workers:
+  - task: /root/classificar_commits
+    role: read-only classification leaf
+    requested_model: gpt-6-luna
+    requested_effort: xhigh
+    status: completed
+    mutable_ownership: none
+  - task: /root/brain_core
+    role: read-only leaf
+    requested_model: gpt-6-luna
+    requested_effort: xhigh
+    status: completed
+    mutable_ownership: none
+  - task: /root/infra
+    role: read-only leaf
+    requested_model: gpt-6-luna
+    requested_effort: xhigh
+    status: completed
+    mutable_ownership: none
+    followup: "Completed owner-authorized VM configuration inspection on 2026-10-08; no SQL or remote mutation."
+    current_followup: "Read-only installed Studio/meta image/config/network investigation complete; sanitized findings integrated and pinned Studio source inspected directly by principal."
+  - task: /root/produto_client
+    role: read-only leaf
+    requested_model: gpt-6-luna
+    requested_effort: xhigh
+    status: completed
+    mutable_ownership: none
+evidence:
+  - "Four feature commits listed in discovery.md; source bytes matched the classification snapshot. Canonical SQL EOF whitespace preserved with hash/catalog match."
+  - "discovery.md: Retomada de 26/10/2026 — discussão do assistente."
+  - ../../../product/assistant/rag-harness-overview.md
+  - ../../../product-decisions.md
+  - ../../../open-decisions.md
+  - ../../brain/android-workspace/ui-fixes-checkpoint.yaml
+  - ../../brain/android-workspace/ui-fixes-evidence.md
+  - ../../brain/android-workspace/sync-check-20261014.md
+  - ../../brain/api-auth/api-auth-checkpoint.yaml
+  - "2026-10-26: bundled skillr resume returned seven candidates; direct read found later UI correction and assistant discussion omitted by ranking."
+  - docs/features/brain/brain-core/brain-core-checkpoint.yaml
+  - docs/stack/back-end/features/infra/checkpoint.yaml
+  - contracts/openapi/registry.yaml
+  - "Git HEAD 0204ba4 on feat/brain-core-foundation tracking origin; pre-existing modified/deleted/untracked work preserved."
+  - "Bundled skillr resume over docs returned no candidates and warned of duplicate remaining in Brain Core checkpoint; legacy checkpoints inspected directly."
+  - "SHA-256 checks for Brain Core payload/preflight/verify match feature migration catalog 0006."
+  - "Infra worker return confirmed against operator Apply/ProvisionDevelop, catalog, contract/plan r6 and checkpoint continuation_check: local completion with VM operations pending."
+  - "Brain Core and product returns confirmed against Engine/PostgresStore/test, contract r4, registry and OD-006/OD-007; no HTTP/client implementation found."
+  - "Closure: Ruby YAML parse and discovery-reference check passed; git diff --check exited 0; bundled skillr resume --feature project --task continuation recognized this checkpoint without candidate uncertainties. Legacy Brain Core duplicate-key warning persists."
+  - "2026-10-08 sanitized container configuration evidence read directly by principal; durable conclusions in discovery.md supplement, temporary source /private/tmp/mindforge-supabase-topology-20261008.txt."
+  - "Studio supabase/studio:2026.09.07-sha-7996410 / Meta v0.99.0: sanitized config and network evidence in discovery.md supplement and /private/tmp/mindforge-studio-feasibility-20261008.txt. Commit 7996410 projects/default-project/global PG_META_URL source and official self-hosting docs inspected by principal."
+limitations:
+  - "The follow-up Git publication action authorized local tests and commit/push. Current PASS results are recorded separately from the earlier read-only recovery and do not prove VM/device/runtime."
+  - "2026-10-26 recovery is local inspection/documentation only. No new tests, analyze/build, HTTP, SSH/VM, SQL, Google Console, device, deploy, install or Git publication. Older entries retain their historical limits."
+  - "No assistant executable spec, implementation, new endpoint or external authority approved by this recovery; current product direction is not a technical mechanism contract."
+  - "Initial recovery was local-only. The 2026-10-08 follow-up used read-only SSH/container configuration inspection; no tests, build, database connection, SQL, service mutation, deployment, commit or push."
+  - "VM observations are recorded history from 2026-09-30, not a fresh inspection."
+  - "Legacy checkpoints and stack/product overview documents contain stale and duplicated state."
+  - "Historical PostgreSQL integration matrix was removed from current tests; only static/unit/fake-backed proof is recorded for latest local adaptation."
+  - "The 2026-10-08 bindings inspection did not refresh database catalogs, develop readiness, migration state or nsrdb presence/content. Configuration is not functional Auth/API proof."
+  - "Studio/meta configuration inspected, no HTTP/UI behavior tested; no installed native multi-project support. Additional Studio administration is outside current infra r6 and requires approved new scope."
+blocker: null
+blocker_note: "No blocker to discussion. Next owner decision is the first assistant behavior and its boundaries; existing Android acceptance is a separate pending item."
+resume_from: "Read discovery.md#retomada-de-26102026--discussão-do-assistente and ../../../product/assistant/rag-harness-overview.md; continue owner discussion of OD-017..020 before writing/approving a new executable spec."
+updated_at: '2026-10-27T01:28:35Z'

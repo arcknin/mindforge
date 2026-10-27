@@ -1,0 +1,47 @@
+schema_version: 1
+managed_by: spec-drive
+feature: brain
+task: web-local
+stage: deployed
+status: owner_confirmed_manual_flow
+spec: {path: spec-01-main.md, revision: 1}
+discovery: discovery.md
+tdd_decision: 'yes'
+approvals:
+  execution: Owner requested web build and Docker VM deployment at web-mind.home.arpa.
+  oauth: Owner delegated best current scenario after SSH callback explanation; Google loopback callback preserved.
+completed:
+  - Flutter54 tests/analyze/cleanreleasebuild PASS; Int64 exact on web, tabstorage and PKCEcallback adaptation.
+  - Infra8 tests/render PASS; actual VM Dockerbuild/nginxconfig/hostreload PASS.
+  - Webcontainer healthy0restarts; localhost18088 onexistingnetwork; additivevhost with exactVirtualBoxNATgateway.
+  - Authdevelop changed only siteURL/allowlist with privatebackup/rollback; Googlecallback and credentials preserved.
+  - ActualMac HTTP200 static/callback/Auth, matchingJShash; callbackSSH11000 health200.
+  - FourAPI401, Google302, blockednamespace404;26protectedcontainers/32Nginxfiles preserved.
+remaining:
+  - Record real stale-version CAS conflict, session lifecycle and exact authenticated HTTP evidence when validation resumes.
+  - Record real authorized endpoint proofs before promoting runtime_status.
+workers:
+  - {task: /root/web_client, model: gpt-6-luna, effort: max, scope: src/mindforge-client/, status: completed}
+  - {task: /root/web_infra, model: gpt-6-luna, effort: max, scope: src/brain-engine/features/infra/web-local/, status: completed}
+evidence: [implementation-evidence.md, runtime-evidence.md]
+limitations:
+  - Owner confirmed login, hierarchy creation/observation and rename at3levels including repeatedparent/childnames; CAS/session/HTTP contract proof pending.
+  - HTTP privateLAN; Google callback needs MacSSH11000, session89612 currently open; no autostart.
+  - Public domain/HTTPS, native builds, main/NSR changes and commit/push out of scope.
+blocker: null
+resume_from: runtime-evidence.md owneracceptance; await nextscope or validate remaining real CAS/session/HTTP evidence.
+
+latest_issue:
+  cause: OriginalAuthdevelop defaultaud/role absent; producerconfiguration corrected.
+  authority: Ownerexplicitly authorized correction and deletion/recreation of malformed Google develop test account.
+  applied: GoTrueadminhardDELETE200; oldtarget user/identity/session/Braincounts0; twoAuthdefaults authenticated;26protectedcontainers preserved.
+  evidence: runtime-evidence.md; privateVM recreation-proof.json; local9webinfra and22Authhelper testsPASS.
+  next: Login/hierarchy/rename confirmed byowner; additional real CAS/session/HTTP proof remains pending.
+
+owner_acceptance:
+  date: '2026-10-09'
+  evidence: Owner “fununciando” + realwebscreenshot Trabalho > Icarus Studio > NSR.
+  confirmed: Googleentry, manualthreelevelhierarchycreation/observation andrenameall3levels; repeatedparent/childnames androotlayerversion2 visible.
+  unproven: Concurrentstale-version CAS409, same-parentduplicatecase, sessionrestore/logout andexactHTTP responsecontractproof.
+
+latest_owner_evidence: "Rename screenshot Renomeado > Icarus Studio > Icarus Studio, selectedlayer version2; owner says all3layers renamed."

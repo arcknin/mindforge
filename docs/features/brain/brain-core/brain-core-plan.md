@@ -3,168 +3,128 @@ schema_version: 1
 flow: orchestration-flow
 feature: brain
 task: brain-core
-revision: 1
-contract_revision: 2
+revision: 3
+contract_revision: 4
 status: ready
 tdd: yes
-implementation_authorized_at: 2026-09-17T03:00:04Z
+implementation_authorized_at: null
 repositories:
   - mindforge
 ---
 
-# Code Plan: Brain Core
+# Code Plan: Brain Core r4 migration integration
 
 ## Execution summary
 
-Implementar o primeiro núcleo executável do Brain Engine em Go como uma
-superfície de domínio/aplicação sem transporte HTTP. O núcleo recebe um
-principal autenticado opaco, aplica autorização owner-only, mantém um Brain por
-principal, cria um root estrutural persistido que não aparece como camada,
-permite nesting livre e usa identidade estável com controle otimista de
-conflito em rename. A persistência será PostgreSQL por um adapter explícito e
-uma migration de produto separada da superfície de infraestrutura; a
-inicialização do processo não executará migrations automaticamente.
+This plan preserves the completed B01 and B02 work and replaces only the
+remaining B03 migration work from plan revision 2. It is bound to approved
+Brain Core contract r4, with TDD `yes` and no implementation authorization.
+B03 prepares feature-owned schema checks around the existing canonical
+`0001_brain_core.sql` payload and retires the prepared standalone `.psql`
+execution and `brain_core.migration_ledger` route.
 
-São dois lotes sequenciais porque o segundo depende dos ports e invariantes do
-primeiro. Cada lote mantém expected-red -> implementação -> relevant-green no
-mesmo escopo. Nenhum endpoint, documento OpenAPI, client, Hidden Cortex,
-capability futura ou alteração em `src/brain-engine/features/infra/` faz parte
-deste plano.
+The cross-feature ownership boundary is explicit: B03 owns only files under
+`src/brain-engine/features/brain/`; the infra r6 plan B02 owns the global
+catalog descriptor, Go operator, `infra.migration_ledger`, and infra-side
+integration tests. Infra B02 depends on `brain-core:B03` and consumes the
+feature-owned payload/check paths without copying or editing them. These
+disjoint scopes avoid simultaneous file ownership and do not change either
+feature contract or plan other than the two authorized plans.
+
+## Completed batches
+
+- **B01 — completed:** deterministic Brain Core behavior and ports, with
+  local ATDD-01 through ATDD-16 coverage.
+- **B02 — completed:** PostgreSQL adapter and canonical
+  `migrations/0001_brain_core.sql` payload with static/unit evidence. Its
+  historical implementation is preserved; no claim is made that the payload
+  was accepted by PostgreSQL or applied to a database.
 
 ## Tasks
 
 ```yaml
-- id: B01
-  goal: "Entregar o núcleo determinístico do Brain Core e seus ports, cobrindo os 16 cenários ATDD sem escolher transporte ou provedor de autenticação."
-  repository: mindforge
-  depends_on: []
-  allowed_scope:
-    - src/brain-engine/go.mod
-    - src/brain-engine/features/brain/model.go
-    - src/brain-engine/features/brain/errors.go
-    - src/brain-engine/features/brain/ports.go
-    - src/brain-engine/features/brain/ids.go
-    - src/brain-engine/features/brain/engine.go
-    - src/brain-engine/features/brain/engine_test.go
-    - src/brain-engine/features/brain/memory_store_test.go
-  changes:
-    - "Expected-red: adicionar testes table-driven e concorrentes para ATDD-01, ATDD-02, ATDD-03, ATDD-04, ATDD-05, ATDD-06, ATDD-07, ATDD-08, ATDD-09, ATDD-10, ATDD-11, ATDD-12, ATDD-13, ATDD-14, ATDD-15 e ATDD-16; eles devem falhar porque o pacote, os tipos, os ports e o Engine ainda não existem."
-    - "Expected-red: incluir asserções de que o primeiro bootstrap expõe apenas root e zero camadas, não cria Inbox/starter tree, que IDs não dependem de nome/posição, que nomes irmãos iguais são aceitos, que nome vazio/whitespace falha e que trim externo preserva espaços internos, grafia, case e acentos."
-    - "Expected-red: incluir owner-only sem vazamento, parent estrangeiro sem vínculo, nesting profundo sem limite de produto, duas criações simultâneas distintas e rename CAS no qual exatamente uma operação vence, a segunda recebe conflito e só um retry com versão relida vence."
-    - "Implementação: criar o módulo `github.com/arcknin/mindforge/src/brain-engine` na raiz `src/brain-engine`, declarando `go 1.25`, sem dependências externas neste lote; modelar `Principal`, `Brain`, `Root`, `Layer`, `Hierarchy`, `LayerVersion` e IDs UUID gerados pelo Engine."
-    - "Implementação: expor apenas a superfície de aplicação `Bootstrap`, `Observe`, `CreateLayer` e `RenameLayer`, com Store/IDSource injetáveis; validar principal não vazio e nomes com `strings.TrimSpace`, preservando o valor interno e rejeitando somente o resultado vazio."
-    - "Implementação: definir erros opacos e tipados para autenticação, acesso/não encontrado, nome inválido, conflito e falha interna; nunca interpolar owner, Brain ID, layer ID ou nome em erro retornado ao chamador."
-    - "Implementação: criar fake Store somente nos testes, protegido por mutex, para provar as invariantes sem apresentá-lo como persistência de produção; o Engine deve consultar sempre o principal e nunca aceitar autorização derivada de nome ou posição."
-    - "Relevant-green: formatar e executar testes unitários e de race do pacote, confirmando que os cenários passam e que não existe importação de HTTP, endpoint ou acesso direto a PostgreSQL nesta camada."
-  validation:
-    - "cd src/brain-engine && go test ./features/brain/..."
-    - "cd src/brain-engine && go test -race ./features/brain/..."
-    - "cd src/brain-engine && go vet ./features/brain/..."
-    - "gofmt -d src/brain-engine/features/brain/*.go"
-    - "rg -n 'net/http|ListenAndServe|database/sql|pgx' src/brain-engine/features/brain/{model.go,errors.go,ports.go,ids.go,engine.go} deve retornar vazio"
-  done_when:
-    - "O módulo e o pacote compilam, e todos os ATDD-01..ATDD-16 têm uma prova unitária que passa sem Banco, HTTP ou client."
-    - "Bootstrap concorrente converge por owner; criação não deduplica nome; rename usa versão observada e não admite lost update."
-    - "Nenhum default, Inbox, taxonomia, profundidade fixa, operação destrutiva, move, Hive Mind ou Cognitive Function aparece no código ou nos testes."
-    - "Os ports deixam explícita a futura injeção de persistência e principal autenticado sem fingir que autenticação/transportes técnicos já foram contratados."
-  parallelizable: false
-
-- id: B02
-  goal: "Entregar persistência PostgreSQL do Brain Core, migration de produto isolada da infra e prova integrada das invariantes sob concorrência."
+- id: B03
+  goal: "Prepare Brain Core-owned read-only/schema checks for infra's coordinated migration route and retire the standalone psql ledger path."
   repository: mindforge
   depends_on:
-    - B01
+    - B02
   allowed_scope:
-    - src/brain-engine/go.mod
-    - src/brain-engine/go.sum
-    - src/brain-engine/features/brain/migrations/0001_brain_core.sql
-    - src/brain-engine/features/brain/postgres_store.go
+    - src/brain-engine/features/brain/migrations/0001_brain_core.preflight.psql
+    - src/brain-engine/features/brain/migrations/0001_brain_core.apply.psql
+    - src/brain-engine/features/brain/migrations/0001_brain_core.preflight.sql
+    - src/brain-engine/features/brain/migrations/0001_brain_core.verify.sql
     - src/brain-engine/features/brain/migration_test.go
-    - src/brain-engine/features/brain/postgres_store_test.go
   changes:
-    - "Expected-red: criar testes estáticos para a migration ausente e testes de integração que falhem sem o PostgresStore, sem as tabelas `brain_core` e sem as constraints de owner, root, parent e versão."
-    - "Expected-red: provar em banco que duas transações de bootstrap do mesmo principal não podem produzir dois brains/roots, que criações simultâneas com mesmo parent e nome não são deduplicadas e que rename concorrente com a mesma versão produz um sucesso e um conflito sem lost update."
-    - "Expected-red: provar que parent/layer de outro owner não entra na consulta escopada, não cria FK cross-Brain e não revela IDs/nomes; provar também que uma leitura após rename mantém ID, parent, root, filhos e nomes irmãos intactos."
-    - "Implementação: adicionar `github.com/jackc/pgx/v5 v5.7.4` pinado no `go.mod`/`go.sum`, sem expor tipos pgx no modelo; construir adapter parametrizado com pool/transações e mapear ausência, conflito e falha de storage para erros opacos do Engine."
-    - "Implementação: criar `0001_brain_core.sql` fora de `src/brain-engine/features/infra/postgres/migrations/`, com schema `brain_core`, associação única `owner_subject -> brain`, nodes com `kind=root|layer`, UUID estável, `parent_id` e FK composta `(brain_id,parent_id)` para impedir parent de outro Brain, índice de um root por Brain e `version` para CAS; não criar users, documents, Inbox, referências, endpoints ou starter rows."
-    - "Implementação: fazer bootstrap em transação com unique owner e root idempotente; observar root separadamente das camadas visíveis; criar layer com insert owner-scoped que aceita root/layer válido e não aplica unique por nome; renomear com `UPDATE ... WHERE version = expected_version`, distinguir conflito de não encontrado sem devolver detalhes."
-    - "Implementação: manter a migration como arquivo versionado consumido por procedimento de migration autorizado; os testes podem aplicar o arquivo somente em um banco/volume descartável explicitamente identificado, sem auto-migrate no construtor ou startup do Engine."
-    - "Relevant-green: executar testes estáticos/unitários acumulados e, quando `BRAIN_CORE_DATABASE_URL` apontar para um PostgreSQL descartável exclusivo, aplicar a migration de teste e repetir toda a matriz concorrente com `go test -race`; validar também que a infra existente e o registry HTTP não foram alterados."
+    - "Expected-red: update feature-local static tests to require the read-only preflight and schema verifier, preserve the canonical payload's approved shape, and reject standalone `.psql` envelopes or a `brain_core.migration_ledger`. The current tests still require both independent wrappers and their second ledger."
+    - "Keep `0001_brain_core.sql` byte-for-byte as the feature's canonical DDL. Add a feature-owned `0001_brain_core.preflight.sql` that reads only PostgreSQL catalogs and reports whether the expected Brain Core objects are absent/eligible, complete, or partial/divergent. It must not read user-owned Brain or layer values and must not write state."
+    - "Add a feature-owned `0001_brain_core.verify.sql` that checks the approved `brain_core.brains` and `brain_core.nodes` schema shape, parent/brain relationship, root/layer constraints, version and required indexes. It must fail the caller if the expected shape is incomplete. Infra's operator is responsible for running this check inside its migration transaction before writing the authoritative infra ledger."
+    - "Remove `0001_brain_core.preflight.psql` and `0001_brain_core.apply.psql`, including their psql meta-command flow, payload inclusion, advisory-lock/DDL coordination and product-local ledger. The Go operator in infra r6 is the sole coordinator; this batch creates no replacement executor, CLI, ledger, or direct apply path."
+    - "Update only `migration_test.go` to test the Brain Core-owned source and check files, assert the preflight is read-only and checks do not inspect user data, assert the verifier covers the approved schema, and assert both standalone envelopes are absent. Leave the infra catalog descriptor, operator code/tests, `infra.migration_ledger`, Brain Core contract/plan decisions and OpenAPI registry to their owning surfaces."
+    - "Relevant-green: rerun the focused Brain Core Go tests and static checks. They demonstrate source/check consistency only; they do not execute SQL or prove PostgreSQL accepts or applies it."
   validation:
-    - "cd src/brain-engine && go test ./features/brain/..."
-    - "cd src/brain-engine && go test -race ./features/brain/..."
-    - "cd src/brain-engine && go vet ./..."
-    - "cd src/brain-engine && BRAIN_CORE_DATABASE_URL=\"$DISPOSABLE_DSN\" go test -count=1 ./features/brain/..."
-    - "bash src/brain-engine/features/infra/tests/run.sh static all"
-    - "bash src/brain-engine/features/infra/tests/run.sh unit all"
-    - "rg -n -F 'endpoints: []' contracts/openapi/registry.yaml"
+    - "cd src/brain-engine && go test -count=1 ./features/brain/..."
+    - "cd src/brain-engine && go vet ./features/brain/..."
+    - "gofmt -d src/brain-engine/features/brain/*.go"
     - "git diff --check"
   done_when:
-    - "A migration de produto isolada cria somente o estado necessário ao Brain Core e não é adicionada ao ledger/allowlist de migrations da infra reduzida."
-    - "O adapter PostgreSQL preserva um Brain por principal, root estrutural sem camada inicial, isolamento owner-only, nesting arbitrário, nomes duplicados, IDs estáveis e conflito otimista de rename sob concorrência."
-    - "Testes sem DSN provam static/unit; o comando com DSN prova apenas integração local em banco descartável e não autoriza nem declara execução em VM, produção, dados reais ou deploy."
-    - "Nenhum arquivo de `contracts/openapi/`, client, Hidden Cortex, endpoint HTTP ou migration real é criado/modificado por este lote."
+    - "The canonical Brain Core payload remains feature-owned and unchanged; its local filename `0001` is not assigned a global migration identity by this plan."
+    - "Brain Core supplies read-only eligibility and post-application schema checks for infra plan B02 to register and invoke; no SQL copy or feature-local application ledger exists."
+    - "The standalone `.psql` route and `brain_core.migration_ledger` are absent, and feature-local tests cover the new boundaries without opening a database connection."
+    - "The infra plan B02 integration remains a separate dependent task; this batch edits no files in the infra operator/catalog/test scope."
   parallelizable: false
 ```
 
-## Assumptions
+## Migration ownership and sequence
 
-- O principal recebido pelo Engine é um identificador opaco não vazio já
-  produzido por uma fronteira de autenticação confiável. A integração GoTrue,
-  tokens, sessão, transporte e mapeamento técnico de identidade continuam
-  fora do contrato e deste plano.
-- UUID é apenas uma escolha técnica para identidade estável; Brain e layer são
-  identificados por ID, nunca por nome, ordem ou caminho. O root é um node
-  persistido de tipo estrutural e não entra na coleção de camadas visíveis.
-- `pgx/v5` `v5.7.4` é a única dependência externa prevista; seu uso fica
-  isolado no adapter e não altera a superfície observável.
-- A migration de produto fica em `features/brain/migrations/` e não usa o
-  executor `src/brain-engine/features/infra/scripts/migrate.sh`, cujo contrato
-  continua limitado a Auth, extensões e bookkeeping de infraestrutura.
-- O primeiro slice não possui consumidores de referências/documentos; a prova
-  de continuidade cobre IDs, parent e filhos. Qualquer vínculo de conteúdo,
-  retrieval, sincronização ou Hive Mind exige contrato próprio posterior.
-- A aplicação de qualquer migration é uma ação separada de execução. Esta
-  tarefa de planejamento não executa banco, migration, Docker, HTTP, remoto,
-  commit, push ou deploy; a integração futura deve usar somente ambiente
-  descartável e dados sintéticos dentro da autoridade local registrada.
+1. B03 produces the Brain Core-owned check sources and removes the obsolete
+   standalone envelopes. It does not add a global ID or invoke the checks.
+2. After B03 completes, infra plan r6 B02 registers global ID `0006` against
+   these feature-owned sources and the unchanged canonical payload, then wires
+   preflight, atomic apply, verification, evidence, and same-hash promotion
+   through its Go operator and `infra.migration_ledger`.
+3. Only after both local plans have authorized implementations and passed their
+   local validation may an owner consider a separately authorized VM operation.
+   This plan itself authorizes no preflight, provisioning or SQL execution.
 
 ## TDD execution
 
-- B01 começa pelos reds unitários do comportamento fechado, implementa o
-  domínio/Engine e repete exatamente a matriz até green; o fake Store é fixture,
-  não evidência de persistência.
-- B02 começa pelos reds de schema, constraints e adapter, implementa SQL e
-  PostgreSQL owner-scoped, e repete os testes unitários e concorrentes até
-  green. A migration só pode ser aplicada no banco descartável explicitamente
-  escolhido para a validação; nenhuma aplicação em banco real é presumida.
-- Falha de infraestrutura local, ausência de DSN ou indisponibilidade de Docker
-  é limitação de evidência, não justificativa para substituir integração por
-  mock, VM ou produção. Nenhum batch possui review ou gate intermediário.
+B03 keeps one functional TDD cycle: first the revised static tests fail against
+the current standalone wrappers; then the feature-owned checks replace those
+wrappers; finally the same tests and focused Go checks pass. The infra operator
+cycle belongs solely to infra plan B02, after this batch. There is no separate
+test phase, code phase, review gate or owner decision inside B03.
+
+## Assumptions
+
+- Brain Core contract revision 4 is approved and its canonical migration
+  payload from completed B02 remains the approved source of bytes.
+- Infra contract revision 6 is approved. Its plan B02 owns global migration
+  identity, path/hash registration, target policy, the sole applied-migration
+  ledger, operator execution and promotion evidence.
+- The existing Brain Core SQL catalog checks can be represented by a read-only
+  preflight result and a post-application shape verifier that the operator can
+  run under its explicit target and migration transaction.
+- `implementation_authorized_at` remains null until separate local authority is
+  explicitly recorded; contract approval and plan completion do not authorize
+  source changes or operations on a database.
 
 ## Evidence boundary
 
-- `static`: frontmatter/allowlist, SQL e código compilável, `go vet`, `gofmt`,
-  ausência de endpoints no registry e regressão estática/unit da infra.
-- `unit/local`: testes do Engine com fake Store e `go test -race`; provam regras
-  determinísticas, não PostgreSQL, autenticação real ou runtime.
-- `integration`: testes do adapter contra o DSN/volume descartável informado,
-  com migration aplicada apenas nesse alvo; provam o banco identificado, não
-  produção, VM, rede ou dados reais.
-- `runtime`: nenhum endpoint Mindforge é aprovado ou verificado; o registry
-  continua `endpoints: []`, e não há `runtime_status: verified` a registrar.
+Local Go tests, formatting and static source inspection can verify the feature
+payload/check relationships and the absence of the former route. They cannot
+prove PostgreSQL syntax, catalog results, transaction rollback, operator
+behavior, target ledger contents, runtime, promotion, or deployment. No local or
+disposable PostgreSQL/Docker test is planned.
 
 ## Residual risks
 
-- A forma técnica de autenticar o principal e qualquer contrato HTTP continuam
-  pendentes; o Engine não deve ser apresentado como API publicada após estes
-  lotes.
-- A migration não define um runner de produção nem auto-migrate. O owner deve
-  escolher e autorizar o procedimento operacional antes de aplicar o schema em
-  qualquer banco persistente.
-- O contrato não inclui move/delete/archive/restore, referências de documentos,
-  quotas, auditoria, sync/offline, Hive Mind ou Cognitive Functions; adicionar
-  qualquer um deles invalidaria este plano e exigiria nova decisão/contrato.
-- A prova PostgreSQL depende da compatibilidade do ambiente descartável com a
-  infra atual e não prova deploy, VM, produção, publicação ou segurança de
-  rede. Nenhuma mudança existente do checkout sujo pode ser descartada.
+- The exact-root invariant still depends on the approved Brain Core application
+  path and is not proven for privileged direct writes; this batch must not
+  invent a trigger or broaden product behavior.
+- Static SQL checks do not establish compatibility with the installed
+  PostgreSQL version. Any future apply requires the infra operator, an explicit
+  target and separate owner authorization.
+- The existing designated VM checkpoint has `mindforge_develop` absent. Its
+  additive provisioning, read-only preflight, migration application, main
+  backup/promotion, restore, service changes and deployment remain separate
+  pending operations; none is authorized here.

@@ -49,7 +49,7 @@ Este documento é pré-contrato. Ele não cria schema, endpoint, capability, pla
 
 **Perguntas para o owner:**
 
-- A persistência inicial usa PostgreSQL, Markdown, uma combinação ou outra forma?
+- Para documentos, PD-012 já definiu corpo Markdown como texto no PostgreSQL. Como será a representação técnica e a persistência dos outros tipos de dados?
 - Qual é a identidade canônica de cada item?
 - Qual é a fonte da verdade?
 - Como ocorre eventual conversão entre formatos, se houver?
@@ -102,9 +102,11 @@ Este documento é pré-contrato. Ele não cria schema, endpoint, capability, pla
 
 **Por que importa:** transforma a decisão de retenção em comportamento determinístico, recuperável e operável.
 
-**Perguntas para o owner:**
+**Refinamento local:** PD-017 confirma lixeira local por 10 dias; o planejamento adota 240h desde o commit local, clock UTC do dispositivo, restore antes do vencimento e purge na próxima execução. A etapa remota poderá definir clock/retensão autoritativos próprios.
 
-- Quando começa a contagem dos 10 dias?
+**Perguntas para a etapa remota e casos restantes:**
+
+- Como reconciliar exclusão/restore locais e a contagem autoritativa no servidor?
 - Quem pode ver e restaurar um item, e até quando?
 - Quando e como ocorre o purge?
 - Há retenção legal ou exceções ao prazo?
@@ -129,7 +131,9 @@ Este documento é pré-contrato. Ele não cria schema, endpoint, capability, pla
 
 ### OD-010 — Natureza da relação, grupos e continuidade dos vínculos
 
-**Por que importa:** PD-005 permite que uma Função Cognitiva considere ou atue sobre uma camada, subcamadas específicas ou grupos de ramos diferentes. Ainda falta definir a semântica e o comportamento dessa relação sem reduzir prematuramente as possibilidades do produto.
+**Parte fechada em 2026-10-11:** PD-009..011 definem conteúdo Markdown e dados funcionais nas camadas, funções desenvolvidas pela equipe e estado/configuração próprios por uso. A associação de uso com camada está fechada conceitualmente; seleção de contexto ou de múltiplas camadas não equivale a compartilhar/fundir estados.
+
+**Por que ainda importa:** falta definir cardinalidade de usos na mesma camada, continuidade dos vínculos, seleção, agregação e composição operacional.
 
 **Perguntas futuras:**
 
@@ -140,6 +144,93 @@ Este documento é pré-contrato. Ele não cria schema, endpoint, capability, pla
 - Qual estratégia técnica preserva identidade e referências sem depender de nomes ou caminhos mutáveis?
 - Como essa seleção se integrará futuramente com Hive Mind? Essa discussão fica adiada até o amadurecimento posterior de Hive Mind.
 
+## Conteúdos das camadas e usos de funções
+
+### OD-011 — Usos: cardinalidade, configuração e lifecycle
+
+**Fechado:** PD-010/011; equipe desenvolve as funções, usuário escolhe/configura/combina as disponíveis e cada uso mantém seu próprio estado.
+
+**Ainda aberto:** múltiplos usos da mesma função na mesma camada; parâmetros configuráveis por função; estados e registros de cada domínio; desativação sem perda de dados; cópia/movimentação; exclusão/lixeira/restauração; evolução de definições sem alterar silenciosamente usos existentes. A lixeira de PD-003 continua dependendo dos detalhes de OD-008.
+
+### OD-012 — Documentos Markdown e persistência do conteúdo
+
+**Fechado:** PD-009/012/014..016; corpo Markdown em texto PostgreSQL na fase do servidor; primeira entrega apenas com documentos locais e salvamento automático a cada segundo; ID estável e título separado; documento pertence a uma camada, consulta do pai reúne a subárvore; operações incluem mover/excluir/restaurar; editor texto + prévia. PD-013/015 fecham referências por ID e adiam a visualização do grafo.
+
+**Ainda aberto:** schema/adaptador local e posterior remoto (IndexedDB definido no planejamento da revisão5); regras do título; conteúdo vazio/tamanho; variantes e detalhes de editor; detalhamento dos testes de concorrência já planejada; histórico navegável não incluído; autoria/proveniência; operações de mover e restaurar; referências e seu lifecycle. Upload de arquivos/anexos, importação/exportação e filesystem do computador continuam não escolhidos. Sincronização automática em 30 minutos é direção posterior, não parte da primeira entrega. OD-008/016 concentram lixeira e salvamento local; OD-015 concentra links.
+
+### OD-013 — Primeiro domínio funcional e forma de composição
+
+**Fechado:** PD-010; combinar funções existentes é permitido como direção de produto, sem criação de funções executáveis pelo usuário.
+
+**Ainda aberto:** qual função detalhar primeiro, suas operações e dados tipados; relação entre Tarefas e o conceito exploratório de Atividades; composição por ação manual, vínculo, evento ou automação; escopo entre camadas e autorização por efeito. Foco, tarefas, pontos, Finanças e agendamentos permanecem exemplos, não um catálogo executável.
+
+**Disposição do owner:** “daqui a pouco debatemos melhor, só registra o conceito”. Não escolher a primeira função nem um mecanismo de composição nesta unidade.
+
+### OD-014 — Conteúdo pertencente à camada e contexto consultado
+
+**Fechado:** PD-014 define consulta do pai sobre documentos próprios e de todos os descendentes, sem duplicar dados nem fundir estados. Camada também poderá reunir dados funcionais; PD-005 continua orientando seleção/atuação de funções, que está adiada.
+
+**Ainda aberto:** UX para separar documentos diretos e herdados; paginação/filtros; projeções/resumos versus registros completos; orçamento e seleção para prompts; acesso por agentes e atualização dos resumos. Disponibilidade da subárvore está decidida para documentos; processamento integral por agentes e agregação funcional não estão definidos.
+
+### OD-015 — Sintaxe, lifecycle dos links e projeção do grafo
+
+**Fechado:** PD-013/015; intenção por wikilink/título, ID de destino estável e desambiguação, rename sem quebrar vínculo e links sem destino sinalizados, sem criar documento automaticamente. Validação autoritativa futura no Brain Engine e grafo derivado permanecem a direção; visualização do grafo adiada. Na fase local-only, resolução/navegação alcançam documentos disponíveis localmente e não provam validação remota.
+
+**Ainda aberto:** sintaxe exata para ID/rótulo; se/quando o texto é canonicalizado; representação das referências e reconstrução do grafo sem perder identidade; nome padrão atualizado por rename fechado em PD-019; eventual rótulo personalizado fora do recorte atual; tratamento de links inexistentes, pendentes, removidos ou sem acesso; múltiplas ocorrências/direcionalidade; reconciliação atômica entre texto e projeção; exclusão/lixeira/restauração; grafo por camada versus seleção explícita; layout/navegação e inclusão futura de registros funcionais ou URLs externos. Não escolher biblioteca, banco de grafos, job ou API nesta discussão.
+
+### OD-016 — Persistência local e evolução para sincronização
+
+**Fechado:** PD-016; gravar alterações localmente a cada segundo; entrega atual sem upload de documentos, sem botão de sync e sem scheduler de 30 minutos. PostgreSQL e envio periódico continuam como etapa futura.
+
+**Ainda aberto:** schema/adaptador local e seus testes (IndexedDB e namespace por usuário/ambiente/origem definidos na revisão5); ID estável antes do primeiro upload e sua validação futura; detalhamento/testes de confirmação de commit e recuperação após reload/fechamento; limites/quota/falhas; detalhamento/testes dos conflitos/revisões e isolamento por conta já definidos na revisão5/PD-018; fila/ordem de create/move/delete/restore; cópias antigas e conflitos no envio futuro. Lixeira local detalhada em PD-017; clock remoto, reconciliação de exclusão/restore e outros casos continuam em OD-008.
+
+**Fronteira:** cache/réplica e documentos locais pendentes não concedem autoridade de estado remoto. O primeiro editor pode exigir login/carregamento online de camadas existentes; suporte completo offline da aplicação ainda não foi decidido. Evitar depender de API/schema de documentos inexistentes para a fase local.
+
 ## Nota de coerência arquitetural
 
 A definição de Cérebro, camadas e subcamadas está fechada em PD-001; a fronteira de Hive Mind foi refinada em PD-008. A criação livre da hierarquia e a seleção granular/transversal por Funções Cognitivas estão fechadas em PD-005, sem fechar sua modelagem. Inbox está fora da hierarquia conforme PD-006, e as operações iniciais do Brain Core estão delimitadas em PD-007. Os detalhes operacionais ainda listados, além de nomes concretos de camadas, Markdown, banco estruturado e capabilities em [`architecture-overview.md`](architecture-overview.md), continuam referências conceituais enquanto não forem decididos. O Brain Engine permanece a autoridade arquitetural sobre autenticação, autorização, regras, validação, persistência, effects e estado durável; esta lista não altera esse limite.
+
+PD-009..011 complementam essa direção com conteúdo Markdown/dados funcionais, funções da equipe e estado por uso. OD-011..014 concentram o detalhamento restante; a escolha da primeira função foi adiada pelo owner. O planejamento inicial está em [layer-content](features/brain/layer-content/spec-01-main.md).
+
+PD-012/013 fecham corpo Markdown em texto PostgreSQL e referências internas por identidade/grafo derivado. A escolha de storage do corpo não permanece pendente; OD-012/015 preservam apenas o detalhamento restante.
+
+## Fechamento local em 2026-10-12
+
+PD-017 confirma a lixeira local de 10 dias. PD-018 registra a delegação técnica de conflitos entre abas e a escolha explícita de adiar envio no logout. Preservar documentos/rascunhos confirmados e separá-los por conta integra o recorte local; não depende de servidor disponível. Transações/revisões e notificação entre abas estão especificadas no planejamento e não precisam de nova escolha de mecanismo pelo owner. O contrato ainda deve detalhar IDs/schema/limites, referências Markdown e destinos indisponíveis, sem implantar código.
+
+## Referência documental em 2026-10-12 — PD-019
+
+Nome padrão dos links acompanha renomeações: fechado. Experiência básica de documentos do Obsidian é a referência para os padrões de operação/editor/navegação, conciliada com os IDs estáveis e decisões locais do Mindforge. Não reabrir esse comportamento como escolha pendente. Permanecem detalhamento técnico de sintaxe/schema/adaptador, limites e UX; o principal pode propor defaults sem questionário de mecanismos. Funções, grafo e sync continuam adiados. Referência ao Obsidian não inclui automaticamente Live Preview inline, aliases/embeds/blocos/anexos ou vault físico. Ver revisão6 da spec.
+
+## Fechamento documental/backend — PD-020, 2026-10-12
+
+Prevalece sobre listas antigas OD-012/015/016: contrato de produto consolidado na spec01 revisão7; backend antecipado na spec02 e seis endpoints aprovados pelo owner. UUID canônico, título normalizado1..255, conteúdo vazio até1MiB, tokens [[doc:UUID]], título projetado atual, consultas direta/subárvore e lixeira remota240h/CAS estão fechados. Schema/adapter PostgreSQL e tests são implementação, não nova decisão de produto. Client local mantém seu contrato e será implementado depois; envio/reconciliação entre dispositivos, anexos/import/export, aliases/embeds/blocos, grafo e funções continuam adiados. Autoria de agente e políticas de sync não bloqueiam CRUD manual privado. SQL/VM/deploy continuam sem autorização.
+
+
+## Assistente pessoal, RAG, memória, harness e MCP — 2026-10-18
+
+A [visão consolidada](product/assistant/rag-harness-overview.md) separa PD-023..025 das propostas. O registro não autoriza implementação nem novos contratos.
+
+### OD-017 — Memória conversacional, autonomia, retenção e esquecimento
+
+**Fechado:** experiência contínua em PD-023; autoridade e permissões permanecem no Brain Engine.
+
+**Aberto:** histórico/resumos/memórias/documentos e sua persistência; retenção, apagamento e propagação ao índice; correções/contradições; proveniência e classificação por afirmação; o que constitui confirmação; quando sugerir ou criar/atualizar documentos automaticamente. Tipos definidos pelo harness e timestamps por significado são propostas, não schema aprovado. Nenhuma autorização universal de memória automática foi concedida.
+
+### OD-018 — Recuperação, contexto, cobertura e atualização
+
+**Direção preservada:** índice como projeção reconstruível no desenho conceitual da arquitetura; consultas autoritativas continuam sob Brain Engine. Disponibilidade de documentos da subárvore não significa envio integral ao prompt.
+
+**Aberto:** escopo padrão, orçamento e composição do contexto; ferramentas específicas de busca/leitura/consulta estruturada; cobertura e estabilidade de leituras em lotes; distinção rascunho/servidor/índice; chunking, modelo/dimensão de embeddings, algoritmo lexical/vetorial/híbrido, ranking e critérios de avaliação. PostgreSQL/pgvector é referência inicial do desenho anterior, não adoção operacional nova. Corpus e comparação de alternativas são proposta de investigação.
+
+### OD-019 — Modelos, privacidade e continuidade operacional
+
+**Fechado:** possibilidade de modelos diferentes em PD-023; trava e aviso no aplicativo em PD-024.
+
+**Aberto:** provedores suportados e capacidades mínimas; adaptadores específicos/genérico; estado portátil versus estado opaco por provedor; estados de troca/cancelamento/timeout/reconciliação; credenciais; consentimento e dados enviados a inferência, embeddings ou outros serviços; fallback e limites de custo. Compatibilidade genérica não garante suporte integral a ferramentas.
+
+### OD-020 — Contratos e operação MCP
+
+**Fechado:** consumir MCP externo e oferecer servidor MCP Mindforge em PD-025. Não reabrir a necessidade das duas capacidades como indecisa.
+
+**Aberto:** primeiro recorte e catálogo de ferramentas; fluxo interno client/harness → MCP → Brain Engine ainda proposto; localização/processo, transporte, descoberta, autorização, identidade, escopos, consentimento, credenciais e limites por integração. MCP não substitui regras Brain Engine, não autoriza acesso direto a GoTrue/SQL e não converte exemplos em endpoints aprovados. API manual permanece existente; seu contrato não é alterado nesta unidade.

@@ -62,3 +62,8 @@ A identidade de um Cérebro por usuário, sua organização hierárquica e a fro
 - [Decisões em aberto](../../open-decisions.md), especialmente OD-001, OD-002, OD-004, OD-005, OD-006 e OD-010.
 - [Visão inicial da arquitetura](../../architecture-overview.md), como referência conceitual e não como contrato.
 - [Orientação do checkout](../../../AGENTS.md) e [registro de contratos HTTP](../../../contracts/openapi/README.md), que preservam a separação entre documentação, contrato, implementação e runtime.
+
+
+## Continuação conceitual — assistente pessoal
+
+PD-023..025 consolidam a direção de assistente contínuo, trava para troca de modelo e MCP como consumidor/provedor. A [visão de RAG, memória e harness](../assistant/rag-harness-overview.md) distingue essas decisões das propostas e pendências OD-017..020. Não é uma spec executável e não altera os contratos existentes.

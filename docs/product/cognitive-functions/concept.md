@@ -1,5 +1,12 @@
 # Funções Cognitivas — conceito de produto
 
+
+## Refinamento confirmado em 2026-10-11
+
+As [decisões de produto](../../product-decisions.md) PD-009..011 fecham o conteúdo das camadas (Markdown e dados funcionais), o desenvolvimento de Funções Cognitivas pela equipe e a separação de configuração/estado por uso. O usuário escolhe onde usar e como combinar funções disponíveis; nomes de camadas não restringem a finalidade. Cada uso conserva seu estado, inclusive quando a mesma função aparece em outras camadas. A primeira função e a composição operacional foram adiadas pelo owner.
+
+PD-012/013 também definem o corpo Markdown como texto no PostgreSQL, referências internas por IDs estáveis e grafo derivado de documentos/links, com validação no Brain Engine. Schema, sintaxe exata das referências, APIs, lifecycle e seleção/herança de contexto continuam abertos. Esta atualização prevalece sobre trechos exploratórios abaixo somente para esses pontos fechados. Função de produto não é sinônimo de capability ou endpoint, e o Brain Engine permanece a autoridade dos efeitos.
+
 > Natureza: documentação conceitual, pré-contrato.
 
 ## Essência

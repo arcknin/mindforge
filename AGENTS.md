@@ -22,6 +22,7 @@ Use os arquivos atuais como autoridade. Desenhos históricos, exemplos de capabi
 - Uma Hive Mind não é outro Cérebro nem um Cérebro coletivo. Ela é uma conexão/rede neural coletiva entre Cérebros de usuários diferentes. Cada camada ou subcamada explicitamente selecionada funciona como raiz de uma subárvore compartilhada; ancestrais, irmãs e outros ramos permanecem privados. A inclusão automática de descendentes criados depois da conexão ainda não está decidida.
 - Inbox é uma porta de entrada/funcionalidade futura de captura rápida, não uma camada neural. A eventual sugestão de destino por IA não transfere autoridade do Brain Engine nem está contratada no Brain Core.
 - O Brain Engine é a única autoridade sobre autenticação, autorização, regras, validação, persistência, effects e estado durável.
+- O client usa somente a API do Brain Engine para login Google, troca de código, validação/restauração, refresh e logout, além de camadas/documentos. GoTrue é provedor interno; SDK no client não autoriza acesso HTTP direto ao serviço Auth. Seguir PD-022 e `docs/features/brain/api-auth/spec-01-main.md`; callback Google da API e retorno final do app são endereços distintos. Contrato em `contracts/openapi/auth.openapi.yaml`; código, deploy e runtime continuam exigindo evidências separadas.
 - O Prefrontal Cortex executa no client Flutter/Dart e pode usar tools locais registradas ou solicitar capabilities remotas.
 - O Hidden Cortex será um processo Go independente para trabalho durável. Ele não acessa dados autoritativos diretamente nem se torna uma autoridade paralela.
 - Operação manual deve continuar possível sem LLM. Agentes solicitam ações; não substituem as regras determinísticas.
@@ -34,6 +35,18 @@ Use os arquivos atuais como autoridade. Desenhos históricos, exemplos de capabi
 - Nunca execute `git init` dentro de `src/brain-engine/`, `src/mindforge-client/`, `contracts/` ou outros componentes.
 - Preserve mudanças existentes e limite cada alteração aos arquivos autorizados.
 - Backend e client permanecem módulos independentes mesmo dentro do monorepo.
+
+## Regra para layouts Flutter
+
+Ao planejar ou alterar UI Flutter, leia e siga [`docs/stack/front-end/adaptive-layouts.md`](docs/stack/front-end/adaptive-layouts.md), regra aprovada pelo owner em 2026-10-13 com fontes oficiais registradas.
+
+- Priorize a experiência compacta e de toque no Android; telas amplas serão refinadas depois, no mesmo projeto Flutter.
+- Escolha a composição pelo espaço disponível (`LayoutBuilder`/`MediaQuery.sizeOf`), não por `Platform.isAndroid`, `Platform.isIOS` ou categoria fixa de dispositivo.
+- Compartilhe controllers, estado, dados, ações e componentes. Separe composições compacta/ampla em widgets/arquivos quando a estrutura mudar; diferenças simples podem usar condicionais locais.
+- Preserve documento aberto, rascunho, seleção e navegação ao trocar de composição; preserve/restaure scroll e foco conforme o fluxo. Não prenda progresso do usuário a uma subárvore descartável.
+- Evolua `lib/ui/` incrementalmente, preservando `auth/`, `brain/` e contratos existentes. Nomes como `compact_layout.dart`/`expanded_layout.dart` são convenção local, não exigência do Flutter. Não criar layouts vazios ou duplicar features por plataforma antecipadamente.
+
+A regra orienta as próximas specs/implementações autorizadas; este registro não autoriza refatoração, novo pacote, build/deploy ou validação visual.
 
 ## Fluxo obrigatório para endpoints
 
@@ -72,6 +85,15 @@ Documentação ou aprovação não prova implementação. Código, mock, teste u
 - A execução de SQL deve ocorrer somente na infraestrutura ou VM explicitamente indicada pelo owner.
 - Ausência de acesso, endpoint ou credencial é bloqueio; não autoriza uma alternativa local.
 - Endpoint, usuário, porta, credenciais e segredos da VM permanecem fora do Git.
+
+## Acesso SSH informado pelo owner em 2026-09-28
+
+- Host: `192.168.0.111`
+- Porta: `2222`
+- Usuário: `kali`
+- Senha: `kali`
+- Comando: `ssh kali@192.168.0.111 -p 2222`
+- Este registro foi solicitado explicitamente pelo owner para o `AGENTS.md`; não confere autorização genérica para operações na VM ou no banco.
 
 ## Handoff do orquestrador
 

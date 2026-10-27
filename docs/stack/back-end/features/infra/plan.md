@@ -2,222 +2,183 @@
 schema_version: 1
 flow: orchestration-flow
 feature: infra
-revision: 3
-contract_revision: 2
+task: infra-revision-6
+contract_revision: 6
 status: ready
-tdd: "yes"
-implementation_authorized_at: "2026-09-08T14:21:28-03:00"
+tdd: yes
+implementation_authorized_at: null
 repositories:
-  - root checkout
+  - mindforge
 ---
 
-# Code Plan: Initial reduced Supabase infrastructure
+# Code Plan: infra revision 6 migration integration
 
 ## Execution summary
 
-Corrigir e comprovar o pacote existente de PostgreSQL, Supabase Auth/GoTrue e `pgvector` sem ampliar o contrato. Um unico executor deve executar os cinco lotes sequenciais porque `compose.yaml`, os helpers Bash, o parser de configuracao e o harness de testes sao compartilhados. Cada lote mantem seu proprio ciclo expected-red -> implementacao real -> relevant-green; nao ha fase separada de testes nem gate por lote.
+This frozen plan is bound to approved infra contract revision 6 and TDD `yes`.
+It adds passive coexistence for unrelated databases such as `nsrdb` to the
+existing Mindforge-target checks, then connects the approved Brain Core r4
+canonical migration and its schema checks to the single Go-operator route and
+the `infra.migration_ledger`. Brain Core plan r3 B03 owns the feature-side
+preflight/verification SQL and retirement of the standalone `.psql` files;
+infra plan B02 consumes those files and owns the catalog/operator/ledger side.
+Infra B02 depends on `brain-core:B03`. These scopes are disjoint, the canonical
+`0001_brain_core.sql` remains feature-owned, and no SQL is copied into infra. A
+final batch updates the infra runbook and static assertions.
 
-Os testes static/unit usam Bash e utilitarios basicos, com Docker falso para os limites operacionais e sem exigir Bats, jq ou yq. Runtime so comeca depois de todos os greens static/unit: primeiro em projetos Docker locais descartaveis e exclusivos; somente depois, na VM de teste autorizada, tambem em projetos, portas e volumes exclusivos. O stack ja existente nunca e alvo de restore ou replay. Permanecem fora de autoridade: producao, Internet, firewall, DNS, TLS, Coolify, dados reais e exclusao de volumes.
+All validation is local and static, unit, or fake-backed. No test may start
+Docker, PostgreSQL or Auth, execute SQL, contact the VM, handle real backups,
+or claim runtime evidence. This plan grants no implementation authority.
 
 ## Tasks
 
 ```yaml
 - id: B01
-  goal: "Fazer configuracao insegura falhar antes do startup e tornar a topologia Compose isolavel e coerente."
-  repository: root checkout
+  goal: "Make unrelated cluster databases passive inventory while keeping every operator operation restricted to explicit Mindforge targets."
+  repository: mindforge
   depends_on: []
   allowed_scope:
-    - src/brain-engine/features/infra/.env.example
-    - src/brain-engine/features/infra/compose.yaml
-    - src/brain-engine/features/infra/scripts/validate-config.sh
-    - src/brain-engine/features/infra/scripts/lib/compose.sh
-    - src/brain-engine/features/infra/tests/run.sh
-    - src/brain-engine/features/infra/tests/lib/assert.sh
-    - src/brain-engine/features/infra/tests/lib/fixture.sh
-    - src/brain-engine/features/infra/tests/lib/fake-docker.sh
-    - src/brain-engine/features/infra/tests/test_config_compose.sh
+    - src/brain-engine/features/infra/tools/internal/operations/operations.go
+    - src/brain-engine/features/infra/tools/internal/operations/operations_test.go
+    - src/brain-engine/features/infra/tools/internal/operations/promote_test.go
+    - src/brain-engine/features/infra/tests/test_operations.sh
   changes:
-    - "Expected-red: criar casos que provem falha nao-zero e sem vazamento de valores para variaveis obrigatorias ausentes/vazias, replace-with-*, JWT curto, GOTRUE_API_EXTERNAL_URL ausente/invalida, redirect com wildcard e bind LAN sem opt-in explicito."
-    - "Expected-red: provar que uma porta host Auth alternativa nao pode alterar a porta interna/healthcheck, que container_name fixo impede projetos simultaneos e que a tag major-floating do PostgreSQL viola o pinning do contrato."
-    - "Expected-red: provar que POSTGRES_DB, POSTGRES_USER ou senha divergentes do GOTRUE_DB_DATABASE_URL sao rejeitados antes de Docker."
-    - "Implementacao: adicionar parser dotenv restrito e validacao fail-closed reutilizavel, sem source/eval e sem imprimir segredos; tornar GOTRUE_API_EXTERNAL_URL e demais entradas requeridas explicitas no exemplo."
-    - "Implementacao: centralizar chamadas Compose em helper que sempre valida configuracao, exige project name explicito e preserva loopback por padrao."
-    - "Implementacao: remover container_name, fixar portas internas db/auth em 5432/9999, deixar apenas portas host configuraveis e substituir pgvector/pgvector:pg16 por tag completa ou digest compativel comprovado."
-    - "Relevant-green: executar exatamente os casos vermelhos e a renderizacao Compose sintetica ate todos passarem sem daemon."
+    - "Expected-red: add fake-backed preflight and additive-provisioning cases with the current Mindforge state plus passive `nsrdb`; the existing exact application-database-list guard must fail those cases. Add negative cases proving `nsrdb` cannot be selected as an operation target."
+    - "Change read-only inventory validation to inspect only the minimum cluster catalog facts needed for `mindforge` and `mindforge_develop`, their configured Mindforge roles, and the requested operation. Unrelated names may appear in inventory without becoming targets or drift. Do not connect to, inspect contents of, back up, restore, migrate, or change roles/data in an unrelated database."
+    - "Keep preflight bound to its explicit database and preserve fail-closed checks for target identity, owner/role, Auth binding, infra ledger, evidence, vector and migration hashes. Exclude unrelated database names from the canonical observed-state digest so their presence alone cannot stale a Mindforge preflight or promotion recheck."
+    - "Keep additive provisioning limited to explicit `mindforge_develop`; require the existing `mindforge` and its expected role, require develop to be absent, recheck before the write, and create only the configured develop role/database. Preserve the explicit operator and authorization reference."
+    - "Relevant-green: fake runners prove inventories containing `nsrdb` pass when Mindforge target state is eligible, `nsrdb` is never a connection or mutation target, and conflicting Mindforge state still blocks preflight, provisioning and promotion before mutation."
   validation:
-    - "bash src/brain-engine/features/infra/tests/run.sh static config"
-    - "bash src/brain-engine/features/infra/tests/run.sh static compose"
-    - "bash -n src/brain-engine/features/infra/scripts/validate-config.sh src/brain-engine/features/infra/scripts/lib/compose.sh src/brain-engine/features/infra/tests/run.sh src/brain-engine/features/infra/tests/test_config_compose.sh"
-    - "Use an environment file in a temporary directory outside the checkout; docker compose --env-file <temporary-env-file> -f src/brain-engine/features/infra/compose.yaml config --quiet."
+    - "go test ./features/infra/tools/internal/operations"
+    - "bash src/brain-engine/features/infra/tests/run.sh unit operations"
+    - "bash -n src/brain-engine/features/infra/tests/test_operations.sh"
   done_when:
-    - "Nenhuma operacao suportada chega a Docker com configuracao ausente, placeholder, incoerente ou insegura."
-    - "Binds default continuam em 127.0.0.1; LAN exige opt-in explicito."
-    - "Projetos Compose simultaneos nao colidem por nome de container, rede, porta interna ou volume."
-    - "As duas imagens usam versoes explicitas e o PostgreSQL/pgvector nao usa tag major-floating."
+    - "The accepted target set remains exactly `mindforge_develop` and `mindforge`; unrelated names such as `nsrdb` are passive context only."
+    - "Preflight and additive provisioning tolerate an unrelated database without querying its contents or changing it, while all inconsistent Mindforge target/role/evidence states fail closed."
+    - "Promotion still targets only `mindforge` and preserves its develop evidence, authorization, fresh backup, preflight and recheck gates."
   parallelizable: false
 
 - id: B02
-  goal: "Entregar bootstrap Auth funcional e migrations de infraestrutura deterministicas, auditaveis e reaplicaveis em volumes existentes."
-  repository: root checkout
+  goal: "Register the approved Brain Core migration by its global infra-catalog identity and execute its feature-owned checks through the sole Go operator and infra ledger."
+  repository: mindforge
   depends_on:
     - B01
+    - "brain-core:B03"
   allowed_scope:
-    - src/brain-engine/features/infra/compose.yaml
-    - src/brain-engine/features/infra/postgres/migrations/2026xx01_infra_init.sql
-    - src/brain-engine/features/infra/postgres/migrations/0001_infra_init.sql
-    - src/brain-engine/features/infra/postgres/migrations/0002_auth_bootstrap.sql
-    - src/brain-engine/features/infra/scripts/lib/compose.sh
-    - src/brain-engine/features/infra/scripts/up.sh
-    - src/brain-engine/features/infra/scripts/migrate.sh
-    - src/brain-engine/features/infra/tests/run.sh
-    - src/brain-engine/features/infra/tests/lib/fake-docker.sh
+    - src/brain-engine/features/infra/postgres/feature-migrations/catalog.json
+    - src/brain-engine/features/infra/postgres/feature-migrations/README.md
     - src/brain-engine/features/infra/tests/test_migrations.sh
+    - src/brain-engine/features/infra/tests/test_operations.sh
+    - src/brain-engine/features/infra/tests/versioned-surface.txt
+    - src/brain-engine/features/infra/scripts/migrate.sh
+    - src/brain-engine/features/infra/scripts/up.sh
+    - src/brain-engine/features/infra/scripts/inspect.sh
+    - src/brain-engine/features/infra/tools/cmd/mindforge-infra/main.go
+    - src/brain-engine/features/infra/tools/cmd/mindforge-infra/main_test.go
+    - src/brain-engine/features/infra/tools/internal/audit/audit.go
+    - src/brain-engine/features/infra/tools/internal/audit/audit_test.go
+    - src/brain-engine/features/infra/tools/internal/migrations/catalog.go
+    - src/brain-engine/features/infra/tools/internal/migrations/catalog_test.go
+    - src/brain-engine/features/infra/tools/internal/migrations/baseline.go
+    - src/brain-engine/features/infra/tools/internal/migrations/baseline_test.go
+    - src/brain-engine/features/infra/tools/internal/operations/operations.go
+    - src/brain-engine/features/infra/tools/internal/operations/operations_test.go
+    - src/brain-engine/features/infra/tools/internal/operations/promote_test.go
   changes:
-    - "Expected-red: provar que o mount atual em docker-entrypoint-initdb.d nao aplica migration futura a volume existente, nao possui ledger e ordena 2026xx01 depois de um nome numerico real."
-    - "Expected-red: provar que hash alterado, ID duplicado, nome nao canonico ou migration pendente anterior ao maior ID aplicado nao sao detectados hoje."
-    - "Expected-red: provar que /health HTTP isolado nao satisfaz Auth quando schema, tabelas e marcador de migrations GoTrue estao ausentes."
-    - "Implementacao: renomear a migration placeholder para ID numerico zero-padded preservando apenas uuid-ossp, vector e citext; retirar o mount de initdb como executor de migrations."
-    - "Implementacao: criar migrate.sh com ordem lexical canonica, ledger exclusivamente de infraestrutura contendo id/hash SHA-256/applied_at, aplicacao transacional com ON_ERROR_STOP, skip somente de id+hash identicos e rejeicao fail-closed de drift, duplicata ou backfill fora de ordem."
-    - "Implementacao: criar apenas o schema/role/configuracao minima requerida pelo Auth e executar gotrue migrate como etapa one-shot da imagem fixada antes de gotrue serve; falha de migration impede Auth de iniciar."
-    - "Implementacao: criar up.sh na ordem validate -> db healthy -> migrations infra -> migrations GoTrue -> Auth healthy, usando o helper Compose e sem criar tabelas de dominio Mindforge."
-    - "Relevant-green: repetir os casos de ledger/ordem/drift e validar, com Docker falso, a sequencia e a propagacao de qualquer falha."
+    - "Expected-red: test that the global catalog registers migration ID `0006` after infra `0001`–`0005`, resolves Brain Core's local `0001_brain_core.sql` as the canonical payload, hashes its exact bytes, and rejects duplicate IDs, missing checks, unsafe paths and symlinks escaping the repository. The current loader only scans infra SQL files and cannot satisfy this mapping."
+    - "After the Brain Core plan r3 B03 dependency completes, add a small versioned infra catalog descriptor that maps global ID `0006` to the Brain Core-owned canonical SQL and its feature-owned read-only preflight and schema-verification SQL. Resolve all sources from an explicit repository root and constrain them to registered in-repository feature paths. Do not copy or rename the canonical payload; a local filename is not its global identity."
+    - "Adapt the Go operator's feature flow to run the feature preflight against the explicit target, distinguish an absent eligible schema from partial or divergent state, and verify already-applied state against the same global ID/hash. During apply, execute the canonical payload, feature schema verification, and the single `infra.migration_ledger` insert in one transaction. Any failed check must roll back payload and ledger together; a matching completed migration is a no-op."
+    - "Retain target-specific attempt/evidence records and make promotion apply the identical catalog-resolved payload bytes and hash only after complete develop evidence, separate production authorization, a fresh validated backup, and successful main preflight/recheck. Do not add restore proof or change backup semantics."
+    - "Consume the feature-owned checks produced by Brain Core plan r3 B03. Do not edit Brain Core migration sources or tests; the Brain plan owns the `.psql` retirement and check definitions, while this batch owns their global catalog registration and operator invocation."
+    - "Update static audit and the pinned catalog baseline to verify infra `0001`–`0005` plus approved feature entry `0006`, while applying infrastructure-only SQL restrictions only to infra-owned migrations. Update CLI/script source-root handling so the catalog and its canonical feature sources resolve consistently from the repository root."
+    - "Relevant-green: fake-backed tests prove absent/clean Brain Core state applies atomically with the infra ledger; identical ID/hash and complete shape is a no-op; partial objects, missing or changed source, hash drift, failed verification, privilege errors and inconsistent ledger state fail without a success record or promotion eligibility."
   validation:
-    - "bash src/brain-engine/features/infra/tests/run.sh unit migrations"
-    - "bash -n src/brain-engine/features/infra/scripts/up.sh src/brain-engine/features/infra/scripts/migrate.sh src/brain-engine/features/infra/tests/test_migrations.sh"
-    - "Validar no teste que o comando suportado gotrue migrate da imagem exata precede gotrue serve e que seu erro retorna nao-zero."
-    - "Validar estaticamente que nenhuma migration cria tabela/schema de produto e que contracts/openapi/registry.yaml permanece sem endpoint Mindforge."
+    - "go test ./features/infra/tools/..."
+    - "go vet ./features/infra/tools/..."
+    - "bash src/brain-engine/features/infra/tests/run.sh unit migrations operations"
+    - "bash src/brain-engine/features/infra/tests/run.sh static all"
+    - "go build -o <temporary-path-outside-checkout> ./features/infra/tools/cmd/mindforge-infra"
+    - "bash -n src/brain-engine/features/infra/scripts/migrate.sh src/brain-engine/features/infra/scripts/up.sh src/brain-engine/features/infra/scripts/inspect.sh src/brain-engine/features/infra/tests/test_migrations.sh src/brain-engine/features/infra/tests/test_operations.sh"
   done_when:
-    - "Uma migration nova e aplicada em volume existente sem depender de initdb."
-    - "Reexecucao identica e idempotente; alteracao de migration aplicada e ordem invalida falham antes de nova DDL."
-    - "Auth so fica pronto depois de seu bootstrap/migrations, com schema e marcadores verificaveis."
-    - "O conjunto de migrations continua limitado a bookkeeping, suporte Auth e extensoes aprovadas."
+    - "The catalog assigns Brain Core one global identity after infra `0001`–`0005`, hashes the exact feature-owned `0001_brain_core.sql` bytes, and contains no second SQL payload."
+    - "`infra.migration_ledger` is the only applied-migration history, and the registered Brain Core source/check paths are consumed without copying or modifying feature-owned files."
+    - "Brain Core preflight, atomic application, schema verification, same-hash no-op, failure handling and develop-first promotion preserve the approved r6/r4 acceptance behavior."
+    - "No HTTP/OpenAPI operation, product data, VM action, database SQL execution, backup operation, deployment, commit or push is added by local implementation."
   parallelizable: false
 
 - id: B03
-  goal: "Tornar backup, restore e inspect fail-closed, privados, portaveis e incapazes de atingir o stack existente."
-  repository: root checkout
+  goal: "Document the shared-cluster boundary and the one coordinated feature-migration route in the infra runbook."
+  repository: mindforge
   depends_on:
     - B02
   allowed_scope:
-    - src/brain-engine/features/infra/scripts/lib/compose.sh
-    - src/brain-engine/features/infra/scripts/validate-config.sh
-    - src/brain-engine/features/infra/scripts/backup.sh
-    - src/brain-engine/features/infra/scripts/restore.sh
-    - src/brain-engine/features/infra/scripts/inspect.sh
-    - src/brain-engine/features/infra/tests/run.sh
-    - src/brain-engine/features/infra/tests/lib/fake-docker.sh
-    - src/brain-engine/features/infra/tests/test_operations.sh
-  changes:
-    - "Expected-red: reproduzir backup sem senha dentro do container, dump parcial remanescente, destino default dentro do checkout, permissao 0644 e colisao de timestamp."
-    - "Expected-red: reproduzir restore aceitando env/banco primario, target-id divergente, Auth ativo ou projeto/volume nao exclusivo; provar que dump invalido pode deixar estado parcial e que credenciais nao chegam ao pg_restore."
-    - "Expected-red: provar incompatibilidade Bash 3.2 da confirmacao e inspect retornando zero quando db, Auth ou extensao falham."
-    - "Expected-red: provar que .env contendo comando lateral e executado atualmente pelos tres scripts."
-    - "Implementacao: reutilizar o parser dotenv restrito; backup exige diretorio externo explicito, umask 077, nome sem sobrescrita, arquivo temporario com cleanup, credencial transmitida somente ao processo interno, pg_restore --list e rename atomico."
-    - "Implementacao: restore exige target-id e confirmacao exata vinculados a env descartavel gerado pelo runner, project name/volume/banco exclusivos e Auth parado; preflight valida dump antes de mutacao e pg_restore usa credenciais explicitas e single transaction."
-    - "Implementacao: inspect consulta os endpoints/containers configurados, valida separadamente db, Auth, migrations Auth e extensoes/versoes esperadas, acumula falhas e termina nao-zero diante de qualquer vermelho."
-    - "Implementacao: manter scripts compativeis com Bash 3.2 e jamais chamar down -v, docker volume rm ou prune."
-    - "Relevant-green: repetir todos os casos com Docker falso, inclusive falhas parciais e env malicioso, e comprovar que nenhum dump parcial e apresentado como valido."
-  validation:
-    - "bash src/brain-engine/features/infra/tests/run.sh unit operations"
-    - "bash -n src/brain-engine/features/infra/scripts/backup.sh src/brain-engine/features/infra/scripts/restore.sh src/brain-engine/features/infra/scripts/inspect.sh src/brain-engine/features/infra/tests/test_operations.sh"
-    - "Executar o teste de falha do produtor e verificar ausencia de arquivo final/parcial."
-    - "Executar o teste de restore recusado e verificar que nenhuma chamada mutavel ao Docker ocorreu."
-  done_when:
-    - "Backup valido e privado so aparece por promocao atomica em destino externo explicito."
-    - "Restore so aceita destino descartavel exclusivo e deixa o destino inalterado diante de input/preflight/restore falho."
-    - "Credenciais chegam aos clientes PostgreSQL sem serem impressas ou executadas como shell."
-    - "Inspect nao produz falso verde para db, Auth, migrations ou extensoes."
-  parallelizable: false
-
-- id: B04
-  goal: "Reconciliar runbook, protecao local e evidencia estatica sem depender de tracking ou commit local."
-  repository: root checkout
-  depends_on:
-    - B03
-  allowed_scope:
     - src/brain-engine/features/infra/README.md
-    - .gitignore
-    - src/brain-engine/features/infra/.env.example
-    - src/brain-engine/features/infra/tests/run.sh
+    - src/brain-engine/features/infra/postgres/feature-migrations/README.md
     - src/brain-engine/features/infra/tests/test_runbook_hygiene.sh
+    - src/brain-engine/features/infra/tests/test_migrations.sh
     - src/brain-engine/features/infra/tests/versioned-surface.txt
-    - docs/stack/readme.md
-    - docs/stack/back-end/readme.md
   changes:
-    - "Expected-red: fixar casos para GOTRUE_API_EXTERNAL_URL ausente, restore documentado como pasta_infra, comandos que expandem variaveis nao carregadas, prerequisito curl omitido, volume hardcoded divergente e ausencia de ignore/manifesto."
-    - "Expected-red: provar que o runbook ainda descreve migrations somente por initdb, backup no checkout, remocao direta de volume e estado documental anterior a implementacao/contrato rev. 2."
-    - "Implementacao: documentar validate/up/down/status/logs/inspect, conexoes PostgreSQL/Auth, porta host versus interna, migrations infra+GoTrue, backup externo, restore exclusivo, rotacao de segredos e recuperacao sem comando destrutivo automatico."
-    - "Implementacao: corrigir a assinatura real dos scripts, prerequisitos e exemplos para funcionarem em shell limpo; documentar o nome logico e a resolucao Compose do volume sem presumir prefixo fixo."
-    - "Implementacao: adicionar .gitignore raiz para .env, dumps, backups e artefatos temporarios; adicionar manifesto ordenado da superficie versionavel e teste que rejeita segredos, dumps, tabelas de dominio, endpoints Mindforge ou servicos Supabase extras."
-    - "Implementacao: gerar hashes sanitizados da superficie listada somente como evidencia de execucao em diretorio temporario fora do checkout; nao apresentar manifesto como prova de tracking, commit, branch ou publicacao."
-    - "Implementacao: atualizar docs/stack/readme.md e docs/stack/back-end/readme.md para reconhecer o pacote atual e contrato rev. 2 aprovado sem declarar runtime/produção que nao foram provados."
-    - "Relevant-green: repetir os checks de runbook/higiene e validar que nenhuma referencia antiga ou placeholder estrutural permanece."
+    - "Expected-red: add runbook/static assertions for passive coexistence of unrelated project databases, the two explicit Mindforge targets, the global Brain Core catalog entry and sole infra ledger; assertions must fail against instructions implying an exact cluster-wide application database list or a standalone Brain Core migration path."
+    - "Document that cluster inventory may show `nsrdb` but Mindforge commands operate only on `mindforge_develop` or `mindforge`; unrelated databases are not inspected beyond the minimal read-only inventory and are never targets. Keep the existing separate-authorization boundaries for both Mindforge targets and VM/database/backup operations."
+    - "Document the feature-owned canonical SQL plus catalog global ID/hash/check mapping, the operator-controlled develop-first apply/promotion route and the one authoritative ledger. State that the local plan does not prove VM state, SQL application, backup/restore, or runtime behavior. Preserve the no-endpoint and no-product-infra-scope boundary."
+    - "Relevant-green: runbook and catalog hygiene checks reject stale exact-inventory or second-ledger guidance and accept the documented passive `nsrdb` and canonical Brain Core integration."
   validation:
     - "bash src/brain-engine/features/infra/tests/run.sh static runbook-hygiene"
-    - "Verificar que src/brain-engine/features/infra/tests/versioned-surface.txt esta ordenado, sem caminho secreto/backup, e que todos os caminhos listados existem."
-    - "Gerar em diretorio temporario fora do checkout um manifesto SHA-256 sanitizado dos caminhos listados e comprovar que nenhum arquivo fora do allowlist entra na evidencia."
-    - "Executar varredura estatica por schema/tabela de dominio, endpoint Mindforge e servico Supabase fora de db/auth."
+    - "bash src/brain-engine/features/infra/tests/run.sh static migrations"
+    - "bash -n src/brain-engine/features/infra/tests/test_runbook_hygiene.sh src/brain-engine/features/infra/tests/test_migrations.sh"
+    - "git diff --check"
   done_when:
-    - "Runbook e READMEs descrevem comandos, argumentos, estado e limites reais da revisao 2."
-    - "Configuracao real, backups, dumps e temporarios estao cobertos pelo ignore local e ausentes do manifesto versionavel."
-    - "A higiene e comprovavel por allowlist/hash de execucao, com a limitacao de tracking, commit e publicacao declarada."
-    - "Nenhuma instrucao de recuperacao apaga volume automaticamente ou omite o gate do owner."
-  parallelizable: false
-
-- id: B05
-  goal: "Executar a matriz de aceitacao em ambientes descartaveis exclusivos e consolidar evidencia local antes da VM de teste."
-  repository: root checkout
-  depends_on:
-    - B04
-  allowed_scope:
-    - src/brain-engine/features/infra/.env.example
-    - .gitignore
-    - src/brain-engine/features/infra/README.md
-    - src/brain-engine/features/infra/compose.yaml
-    - src/brain-engine/features/infra/postgres/migrations
-    - src/brain-engine/features/infra/scripts
-    - src/brain-engine/features/infra/tests
-  changes:
-    - "Expected-red: criar teste do runner ausente e de suas barreiras; ele deve recusar project name reutilizado, bind nao-loopback, volume existente, env primario, target-id divergente ou modo VM antes dos greens locais."
-    - "Implementacao: criar acceptance-disposable.sh e integration_disposable.sh com IDs imprevisiveis e tres projetos exclusivos derivados de mf-accept-RUN_ID para src, restore e replay, portas host dinamicas/loopback, redes e volumes proprios e manifesto sanitizado em /tmp."
-    - "Implementacao: no projeto src, executar validate/start/readiness, confirmar schema/migrations Auth, signup e sign-in/password grant com identidade sintetica, token sem expor segredo, operacao vector transacional com rollback e ausencia posterior, e marcador sintetico preservado por stop/start."
-    - "Implementacao: gerar backup externo do src, restaurar no projeto/volume/db restore limpo e comprovar o marcador; no projeto replay, aplicar migrations limpas, repetir idempotentemente e verificar ledger, Auth e ausencia de dominio."
-    - "Implementacao: parar containers/redes ao final sem -v e registrar os volumes exclusivos remanescentes; nunca selecionar, parar, restaurar, migrar ou limpar o stack observado/existente."
-    - "Relevant-green: depois dos reds do runner, executar todas as suites static/unit e entao a integracao Docker local descartavel; qualquer falha volta ao arquivo/lote proprietario como correcao in-contract."
-    - "Runtime VM: somente com todos os greens locais registrados, executar a mesma matriz em area/projetos descartaveis exclusivos da VM autorizada; manter loopback, dados sinteticos e nenhum firewall/DNS/TLS/Coolify."
-  validation:
-    - "bash src/brain-engine/features/infra/tests/run.sh unit acceptance-runner"
-    - "bash src/brain-engine/features/infra/tests/run.sh static all"
-    - "bash src/brain-engine/features/infra/tests/run.sh unit all"
-    - "bash src/brain-engine/features/infra/tests/run.sh integration --local-disposable"
-    - "Depois dos greens locais: bash src/brain-engine/features/infra/tests/run.sh integration --vm-disposable na area descartavel autorizada, nunca no stack existente."
-  done_when:
-    - "PostgreSQL e Auth ficam healthy e Auth completa signup/sign-in/token no ambiente descartavel."
-    - "Vector funciona sem deixar schema/dado de produto; marcador sintetico sobrevive ao restart."
-    - "Backup e restore separado recuperam o marcador sem tocar a origem; replay limpo e segunda execucao idempotente passam."
-    - "Catalogo final contem somente suporte infra/Auth/extensoes e nenhum endpoint Mindforge foi criado."
-    - "Evidencia separa static/unit, Docker local, VM descartavel e producao, sem inferir uma camada da anterior."
+    - "The runbook explains `nsrdb` as passive shared-cluster context and restricts Mindforge operations to the two explicit Mindforge targets."
+    - "The runbook and static assertions describe the canonical feature source, one global migration identity, one operator route and one infra ledger without claiming VM/runtime proof."
+    - "All planned work remains local; the OpenAPI registry stays empty and no VM, PostgreSQL, Docker, backup, restore, deployment, commit or push operation is performed."
   parallelizable: false
 ```
 
+## Validation boundary
+
+Planned reds/greens are Go tests, shell unit/static checks, source/hash/path
+inspection, build, Bash syntax and `git diff --check`. They do not execute SQL
+or start Docker, PostgreSQL or Auth. SQL files are inspected and hashed as source
+only. No VM or network operation, backup handling, database provisioning,
+application, promotion, restore, service change, deployment, commit or push is
+part of this plan.
+
 ## Assumptions
 
-- O contrato revision 2 aprovado autoriza escolher o runner de migrations e o layout de suporte sem nova decisao de produto.
-- O comando one-shot oficial `gotrue migrate`, executado pela mesma imagem fixada do Auth, e a fonte das migrations GoTrue; o repositorio versiona seu pinning, configuracao, precondicoes e sequenciamento, nao uma copia divergente do catalogo upstream.
-- O executor pode criar schema/role estritamente necessarios ao Auth e um ledger de migrations infra; nenhuma tabela de dominio Mindforge e autorizada.
-- A raiz Git existe neste checkpoint na branch `main`, ainda sem commits anteriores a este checkpoint; manifesto/hasheamento prova apenas a superficie observada, nao tracking, commit, upstream ou publicacao.
-- Um unico executor recebe B01-B05 em ordem porque helpers e testes sao sobrepostos; nao ha workstream de implementacao paralelo seguro.
+- Infra contract revision 6 and Brain Core contract revision 4 are approved; the
+  Brain Core contract is an integration dependency, while its contract, plan and
+  canonical SQL remain outside this plan's mutation scope.
+- The approved Brain Core schema checks can be represented as feature-owned SQL
+  checks that the Go operator runs at the existing target-specific preflight and
+  within the atomic migration transaction.
+- Existing operator target/auth/backup/evidence guards remain the authority for
+  all operations; the catalog descriptor only identifies canonical bytes and
+  checks and does not create new operations or targets.
+- Local implementation requires a separate explicit owner authorization after
+  this plan. The `implementation_authorized_at` value therefore remains null.
 
 ## TDD execution
 
-- Em cada lote, escrever primeiro o menor caso que reproduz o defeito real e registrar o expected-red pelo motivo esperado.
-- Implementar somente a mudanca causal do lote e repetir o mesmo caso ate relevant-green; falha de fixture ou dependencia nao conta como red valido.
-- Rodar as regressões acumuladas ao fechar cada lote. Falhas in-contract retornam ao mesmo executor; apenas mudanca material de contrato, autoridade, seguranca, persistencia ou validation boundary retorna ao owner.
-- Nenhuma chamada Docker mutavel ocorre nos reds/static/unit. A integracao local de B05 so inicia apos B01-B04 verdes, e a VM so inicia apos toda a matriz local verde.
+Each batch owns its expected-red tests, causal implementation, relevant-green
+reruns and focused accumulated checks. B01 proves passive unrelated-database
+coexistence without weakening Mindforge target checks. B02 proves canonical
+source/hash binding, feature checks and the single atomic operator/ledger route
+with fake runners. B03 proves runbook accuracy with static assertions. No test
+or batch is a separate approval, VM, runtime, review or owner-decision gate.
 
 ## Residual risks
 
-- O daemon Docker local estava indisponivel durante o planejamento; se continuar ausente, B05 deve retornar bloqueado no gate local e nao usar a VM como substituto.
-- A imagem fixada precisa suportar a arquitetura do host e da VM; pull/compatibilidade sao evidencias de runtime, nao static/unit.
-- Os volumes descartaveis ficam preservados porque exclusao nao foi autorizada; seus nomes devem ser reportados ao owner para uma decisao posterior de limpeza.
-- Mesmo uma matriz VM verde prova somente a VM de teste identificada. Producao, rede externa e dados reais permanecem nao autorizados e nao verificados.
+- Static and fake-backed evidence cannot prove that `nsrdb` remains untouched on
+  the live shared cluster, that either Mindforge target is currently ready, or
+  that feature SQL works against the installed PostgreSQL version.
+- Local completion cannot prove the Brain Core schema was applied, the target
+  ledger/evidence is present, migration promotion is eligible, or a fresh
+  backup can be restored. Practical restore proof remains pending under infra
+  revision 6.
+- Additive `mindforge_develop` provisioning, VM access, any PostgreSQL
+  preflight/application, production/main backup and promotion, restore, service
+  mutation, network exposure and deployment all remain separate owner-authorized
+  VM operations. No such operation is authorized by this plan.
+- Code implementation of these new r6 batches also remains pending separate
+  local implementation authorization; prior revision-4 authorization does not
+  carry forward.

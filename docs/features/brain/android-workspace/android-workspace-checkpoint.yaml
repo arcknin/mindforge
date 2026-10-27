@@ -1,0 +1,143 @@
+schema_version: 1
+managed_by: spec-drive
+feature: brain
+task: android-workspace
+stage: owner_android_acceptance
+status: delivered_for_owner_test
+spec:
+  path: spec-01-main.md
+  revision: 2
+discovery: discovery.md
+workspace: /Users/arcknin/Desktop/mindforge
+authority:
+  client_code_tests_local_build: owner_20261013
+  synchronization: Owner confirmou autosave local1s, sync automático30min e botão manual.
+  tdd: 'yes'
+  sql_vm_deploy: owner_approved_20261013_develop_backup_migration0007_api_only
+  device_install_visual_qa: not_authorized
+  commit_push: not_authorized
+workers:
+  - task: android_documents
+    model: gpt-5.6-luna
+    effort: max
+    role: leaf
+    ownership: lib/documents e test/documents
+    status: completed
+  - task: android_adaptive_ui
+    model: gpt-5.6-luna
+    effort: max
+    role: leaf
+    ownership: lib/ui e test/widget
+    status: completed
+  - task: android_shell
+    model: gpt-5.6-luna
+    effort: max
+    role: leaf
+    ownership: android, AppConfig/configtest e helper cold/warm callbacks/test
+    status: completed
+principal_ownership: spec/deps/main/app/platform composition/docs/final validation
+completed:
+  - Layouts adaptativos e preservação de Google/camadas existentes.
+  - Documentos locais, Markdown/links, CRUD/lixeira e sync30min/manual com TDD.
+  - Baseline54 preservada; suíte final99 PASS; analyze/APK/Web PASS.
+  - APK final inspecionado e assinatura v2 verificada.
+  - Backup develop validado, migration0007 aplicada pelo operador e API develop publicada.
+  - 49 containers protegidos e Auth/callbacks preservados; seis rotas401 sem token.
+  - Túnel Mac aberto; binds11000/11001 constatados por lsof.
+remaining:
+  - Owner instalar APK, encaminhar portas por ADB e testar Google/CRUD/sync no aparelho.
+  - Prova autenticada dos endpoints e aceite visual/device permanecem pendentes.
+limitations:
+  - Backend aplicado/publicado; runtime autenticado ainda pending.
+  - Sem implementação documental Web/IndexedDB nesta tarefa Android.
+  - Timer não garante execução com Android suspenso; callbacks/rede reais ainda não provados.
+blocker: null
+resume_from: android-test-guide.md e implementation-evidence.md; aceite pelo owner no aparelho.
+
+local_validation:
+  flutter_tests: 99_PASS
+  flutter_analyze: PASS
+  apk_debug: built_and_signature_verified
+  web_build: PASS
+  apk_sha256: fc7b5cbcfc011941642b3b3b18545f7fe4f878c3813dbf9767ce917beeb0e33e
+  apk_bytes: 176720655
+vm_authorization:
+  target: mindforge_develop
+  operations: backup, migration0007_via_operator, brain_engine_develop_update
+  protected: main_NSR_Studios_Auth_volumes
+  device_installation: owner_only
+
+vm_result:
+  status: backup_migration_and_api_deployed
+  target: mindforge_develop
+  migration: '0007'
+  protected_containers_preserved: 49
+  auth_changed: false
+  authenticated_http_runtime: pending
+  evidence: vm-runtime-evidence.md
+local_transport:
+  ssh_session: 5180
+  listener_pid: 34017
+  bindings: loopback11000_and11001
+  local_http_probe: auto_review_rejected_no_external_calls
+endpoint_states:
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+evidence:
+  - implementation-evidence.md
+  - vm-runtime-evidence.md
+updated_at: '2026-10-13T18:01:15Z'
+
+vm_worker:
+  task: android_develop_vm
+  model: gpt-6.1-sol
+  effort: high
+  role: leaf
+  status: completed
+  ownership: VM develop backup/migration0007/API e evidência sanitizada
+
+continuation_auth:
+  owner_decision: client_API_only_including_login_and_session_20261013
+  task: ../api-auth/api-auth-checkpoint.yaml
+  delivered_apk_auth_boundary: direct_GoTrue_not_yet_corrected
+  status: API_only_implemented_develop_cutover_applied_Google_console_pending
+  note: Guia/APK anteriores documentam o transporte entregue; não representam a fronteira API-only solicitada depois. Preservar evidência anterior; novo contrato/corte já aplicado, usar guia api-auth e aguardar URI Google/aceite autenticado.
+
+owner_reported_issues:
+  date: '2026-10-14'
+  record: known-issues.md
+  ids: [AND-001, AND-002]
+  status: corrected_locally_device_acceptance_pending
+  next: Owner atualizar APK e confirmar correções; continuidade em ui-fixes-checkpoint.yaml.
+
+document_sync_check:
+  owner_request: read_only_VM_check_after_manual_sync_20261014
+  worker: document_sync_vm_check
+  model: gpt-5.6-luna
+  effort: xhigh
+  role: leaf
+  target: mindforge_develop_only
+  status: completed_remote_document_arrival_verified
+  authority: SELECT_only_no_changes_no_main_NSR
+  UI_fixes: remain_deferred
+  evidence: sync-check-20261014.md
+  query: sync-check-20261014.sql
+  checked_at: '2026-10-14T15:27:26Z'
+  result:
+    auth_users: 1
+    documents: 2
+    Teste: active_version2_Markdown20bytes20chars
+    Outro_teste: active_version2_Markdown_empty
+    document_owner_layer_coherence: verified
+    separate_finding: one_Brain_without_corresponding_Auth_user_no_cleanup
+  limit: No_local_body_comparison_or_HTTP_contract_promotion
+
+continuation_ui_fixes:
+  owner_request: fix_registered_AND001_AND002_spec_drive_20261014
+  checkpoint: ui-fixes-checkpoint.yaml
+  spec: spec-02-ui-fixes.md
+  evidence: ui-fixes-evidence.md
+  status: delivered_local_device_pending
+  flutter_suite: 125_PASS
+  note: Artefato APK atual e hash estão na nova evidência; valores anteriores são históricos.

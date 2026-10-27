@@ -1,5 +1,12 @@
 # Camadas neurais e subcamadas
 
+
+## Refinamento confirmado em 2026-10-11
+
+As [decisões de produto](../../../product-decisions.md) PD-009..011 fecham o conteúdo das camadas (Markdown e dados funcionais), o desenvolvimento de Funções Cognitivas pela equipe e a separação de configuração/estado por uso. O usuário escolhe onde usar e como combinar funções disponíveis; nomes de camadas não restringem a finalidade. Cada uso conserva seu estado, inclusive quando a mesma função aparece em outras camadas. A primeira função e a composição operacional foram adiadas pelo owner.
+
+PD-012/013 também definem o corpo Markdown como texto no PostgreSQL, referências internas por IDs estáveis e grafo derivado de documentos/links, com validação no Brain Engine. Schema, sintaxe exata das referências, APIs, lifecycle e seleção/herança de contexto continuam abertos. Esta atualização prevalece sobre trechos exploratórios abaixo somente para esses pontos fechados. Função de produto não é sinônimo de capability ou endpoint, e o Brain Engine permanece a autoridade dos efeitos.
+
 > **Aviso de escopo:** este é um documento conceitual de produto. Ele não autoriza schema, API, endpoint, persistência, implementação ou plano de entrega. Detalhes operacionais continuam sujeitos a decisões e contratos próprios.
 
 ## Essência
@@ -64,3 +71,7 @@ O princípio de um Cérebro por usuário organizado em camadas e subcamadas é u
 - [Decisões em aberto](../../../open-decisions.md), especialmente OD-001, OD-002, OD-005 e OD-010.
 - [Visão inicial da arquitetura](../../../architecture-overview.md), como referência conceitual e não como contrato.
 - [Orientação do checkout](../../../../AGENTS.md) e [registro de contratos HTTP](../../../../contracts/openapi/README.md), que impedem promover conceitos a schema, endpoint ou implementação.
+
+## Consulta documental da subárvore e primeira entrega local
+
+PD-014 confirma que, a partir da camada-pai, o usuário pode consultar documentos próprios e de todos os descendentes. Cada documento continua pertencendo diretamente a uma camada; a consulta não duplica dados nem funde estados funcionais. PD-015 inclui operações documentais de mover/excluir/restaurar e adia a visualização do grafo. PD-016 define autosave documental local a cada segundo na primeira entrega; PostgreSQL e sincronização ficam para a fase remota posterior. A seleção de atuação de Funções Cognitivas é uma discussão distinta e adiada.

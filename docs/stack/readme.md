@@ -32,7 +32,7 @@ Os diretórios de código são estrutura-alvo e devem ser criados somente quando
 ## Responsabilidades
 
 - `src/brain-engine/`: serviço Go autoritativo sobre autenticação, autorização, regras, validação, persistência, capabilities e efeitos reais.
-- `src/brain-engine/features/infra/`: ambiente reproduzível do Brain Engine, incluindo PostgreSQL, migrations, seeds, backup e restore.
+- `src/brain-engine/features/infra/`: ambiente VM-only do Brain Engine, incluindo um cluster PostgreSQL persistente com duas bases, dois Auth/GoTrue, migrations, seeds, backup, restore e o operador Go distribuível.
 - `src/mindforge-client/`: aplicação Flutter/Dart e Prefrontal Cortex. Pode executar tools locais explicitamente registradas, mas efeitos compartilhados ou autoritativos passam pelo Brain Engine.
 - `contracts/openapi/`: fonte canônica dos contratos HTTP aprovados e registro separado de sua implementação e verificação.
 - `docs/`: visão arquitetural e decisões. Exemplos conceituais não criam endpoints automaticamente.
@@ -42,10 +42,20 @@ Os diretórios de código são estrutura-alvo e devem ser criados somente quando
 
 ## Estado atual
 
-A primeira superfície de infraestrutura existe em `src/brain-engine/features/infra/`: definição reduzida de PostgreSQL, Supabase Auth/GoTrue, `pgvector`, migrations de infraestrutura e helpers operacionais. Os documentos da feature ficam em `docs/stack/back-end/features/infra/`. Ela é regida pelo contrato `infra` revision 2 aprovado. Isso não cria uma API do Mindforge, tabelas de domínio, Brain Engine executável ou client.
+Infra r6 preserva main físico `mindforge` e develop `mindforge_develop`, com Auth/GoTrue separados no cluster persistente. A unidade [develop-studio](../features/infra/develop-studio/runtime-evidence.md) registra implantação e verificações reais de develop/Brain0006 e portal administrativo; main continua sem promoção0006.
 
-O pacote ainda exige validação separada de runtime descartável para cada critério funcional. A presença dos arquivos e os testes static/unit não provam Docker local, VM de teste, produção, rede, dados reais ou publicação. Flutter/Dart continua escolhido para o client; Go continua escolhido para Brain Engine e Hidden Cortex.
+Brain Core r4 implementa bootstrap privado, hierarquia, criação e rename com conflito. A nova [entrega manual-online](../features/brain/manual-online/implementation-evidence.md) acrescenta localmente `auth/`, `api/` e `cmd/brain-engine/`, quatro contratos OpenAPI aprovados e client Flutter macOS com Google-only, Keychain e árvore manual. API usa o Core existente e não aplica migrations no startup.
+
+Testes Go/Flutter, análise e pacote Linux passaram. Auth Google/API develop e túnel estão aplicados conforme [evidência de serviços](../features/brain/manual-online/runtime-service-evidence.md); login Google/troca de código e operações autenticadas ainda não foram comprovados. O build Flutter macOS depende de `xcodebuild`, ausente no ambiente ativo. Contrato aprovado e implementação local não representam deploy/runtime verificado. Setup Google, toolchain nativo e integração B04 são a próxima fronteira; nenhum Hidden Cortex ou fluxo agêntico foi criado.
 
 ## Evolução do repositório
 
 O monorepo não obriga versionamento único. Backend, client e contratos poderão possuir tags, releases e pipelines próprios. Se no futuro houver necessidade operacional, um componente poderá ser extraído para outro repositório preservando seu histórico.
+
+## Continuação web atual
+
+Owner substituiu a direção Android/macOS pelo client Flutter Web. [Web develop](../features/brain/web-local/runtime-evidence.md) foi compilada e publicada em Docker na VM, em `http://web-mind.home.arpa`, com Auth/API na mesma origem e callback Google existente pelo túnel Mac11000.54 testes Flutter, análise/build e HTTP real passaram; login no navegador e operações autenticadas continuam pendentes. Xcode não condiciona esta entrega. Main/NSR/Studios preservados; nenhuma migration ou promoção executada.
+
+## Continuação API-only Auth — 2026-10-14
+
+A [tarefa api-auth](../features/brain/api-auth/api-auth-checkpoint.yaml) implementou com TDD login/sessão exclusivamente pelo Brain Engine e aplicou API/Auth/Web develop. Client mantém SDK interno, com endereço API único11001; GoTrue não é endpoint do app.117 testes Flutter/analyze, Go test/race/vet/build e artefatos passaram;22 checks reais e47 containers protegidos preservados. Google Console/aceite autenticado ficam com o owner. Consulte o guia atual antes de reutilizar o transporte Auth11000 das entregas históricas.

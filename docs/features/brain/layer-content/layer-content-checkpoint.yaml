@@ -1,0 +1,83 @@
+schema_version: 1
+managed_by: spec-drive
+feature: brain
+task: layer-content
+status: backend_deployed_authenticated_runtime_pending
+stage: owner_android_acceptance
+spec:
+  path: spec-02-backend.md
+  revision: 1
+discovery: discovery.md
+related_specs:
+  - path: spec-01-main.md
+    revision: 7
+    scope: Direção de produto e futuro client local.
+    status: planning_client_deferred
+  - path: spec-02-backend.md
+    scope: Backend documental API/PostgreSQL com TDD.
+    approval: owner_backend_and_http_20261012
+    dependency: Brain Core existente; client não requerido.
+    status: implemented_local_runtime_pending
+approvals:
+  owner_decisions: PD-009..020; owner confirmou antecipar backend, client/sync depois.
+  technical_spec: Spec02 fechada com defaults técnicos dentro da direção aprovada.
+  execution: Código/testes backend e SQL versionado autorizados.
+  http: Seis contratos propostos aprovados explicitamente pelo owner em 2026-10-12.
+  external_authority: SQL executado, VM, deploy, instalação, dados reais, commit/push não autorizados.
+tdd_decision: 'yes'
+tdd_note: Test-first RED/GREEN/refactor obrigatório neste lote.
+workspace: /Users/arcknin/Desktop/mindforge
+workers:
+  - task: documents_domain
+    model: gpt-5.6-luna
+    effort: max
+    role: leaf
+    ownership: documents model/engine/parser e testes; sem SQL/API.
+    status: completed
+  - task: documents_postgres
+    model: gpt-5.6-luna
+    effort: max
+    role: leaf
+    ownership: documents adapter/SQL/checks e catálogo migration0007; sem domínio/API.
+    status: completed
+completed:
+  - Spec01 produto consolidada revisão7; spec02 backend aprovado/implementado.
+  - Domínio/parser/Store pgx, seis endpoints HTTP e composição startup com TDD.
+  - Migration canônica0007, checks, catálogo e baseline global; pins0001..0006 preservados.
+  - Go tests/race/vet/build PASS; checks migrations e documentação PASS.
+remaining:
+  - Migration0007 e deploy develop concluídos na tarefa android-workspace; resta aceite autenticado.
+  - Prova PostgreSQL/HTTP real na VM e aceite do owner.
+  - Client local/editor e sincronização em entregas posteriores.
+blocker: null
+limitations:
+  - Schema0007 aplicado/verificado na VM; DML/CRUD autenticado ainda não provado. Sem banco local/descartável.
+  - Deploy realizado posteriormente na tarefa android-workspace, com autorização específica.
+  - Client Android/sync implementados na tarefa sucessora; grafo/funções continuam adiados.
+resume_from: ../android-workspace/android-test-guide.md; próximo gate aceite autenticado no aparelho pelo owner.
+updated_at: '2026-10-13T01:47:00Z'
+evidence:
+  - implementation-evidence.md
+  - ../../../../contracts/openapi/documents.openapi.yaml
+validation:
+  go_test: PASS
+  go_test_race: PASS
+  go_vet: PASS
+  go_build: PASS
+  infra_migration_checks: PASS
+  yaml_openapi_refs_links_diffcheck: PASS
+  sql_runtime: schema0007_applied_verified_20261013_authenticated_dml_pending
+  vm_deploy: applied_under_android_workspace_authority_20261013
+endpoint_states:
+  count: 6
+  contract_status: approved
+  implementation_status: implemented
+  runtime_status: pending
+
+continuation_20261013:
+  client: ../android-workspace/spec-01-main.md
+  evidence: ../android-workspace/implementation-evidence.md
+  vm_migration0007: applied_and_schema_checked
+  api_develop: deployed_documents_20261013
+  http_authenticated_runtime: pending_owner_android_test
+  vm_evidence: ../android-workspace/vm-runtime-evidence.md

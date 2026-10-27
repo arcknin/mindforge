@@ -1,126 +1,247 @@
-# Mindforge Infra — reduced PostgreSQL, Auth and pgvector
+# Mindforge Infra — durable PostgreSQL, Auth and pgvector
 
-This package implements only the infrastructure authorized by infra contract revision 2: PostgreSQL, Supabase Auth/GoTrue, `pgvector`, their required migration support, and safe disposable operations. It creates no Mindforge domain table, product API, client, PostgREST, Studio, Storage, Realtime, queue, DNS, TLS, firewall, Coolify, or production deployment.
+This package implements the infrastructure boundary in approved infra contract revision 6. The production/main database is `mindforge`;
+`mindforge_develop` is a distinct database, with an independent Supabase
+Auth/GoTrue service for each target. It creates no Mindforge domain tables,
+HTTP endpoints, OpenAPI operation, PostgREST service, Studio, Storage,
+Realtime, queue or production deployment.
 
-The package is intentionally fail-closed. An apparently healthy container is not a completed functional acceptance: database readiness, GoTrue bootstrap, Auth health, migration state, extensions, persistence, backup and isolated restore are separate checks.
+The cluster inventory may include unrelated databases such as `nsrdb`.
+Mindforge operations accept only `mindforge_develop` or `mindforge`; unrelated
+databases are passive shared-cluster context. The operator does not inspect the contents of unrelated databases, and unrelated databases are never operation targets. Target operations still require their own owner authorization.
 
-The operational package lives at `src/brain-engine/features/infra/` in the monorepo. The commands below assume that the current directory is this package directory.
+SQL execution and real backup handling remain VM-only and require separate
+owner authorization. VM access and database mutation also need their own
+authorization and owner-supplied private configuration. Local validation is
+static, unit or fake-backed; it does not start a PostgreSQL runtime or execute
+SQL.
 
 ## Prerequisites
 
-- Docker Engine with Compose v2, available either as `docker compose` or a compatible `docker-compose` command.
-- Bash 3.2 or later, `shasum` or `sha256sum`, and `curl` for the documented host-side Auth HTTP check.
-- `pg_restore` on the operator host for the read-only backup preflight before any restore target is created.
-- An existing, explicit external backup directory for backup output. It must be outside this checkout.
+The designated VM operator needs:
 
-The database service is pinned to `pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b` for `linux/amd64`. The installed `vector` extension is compatible when its strict three-part version is greater than or equal to `0.8.0` and less than `1.0.0`; the current VM image reports `0.8.6`. Inspection accepts that compatibility range rather than requiring one patch release. The infrastructure migration remains `CREATE EXTENSION IF NOT EXISTS "vector";` and never alters or downgrades an installed extension.
+- Docker Engine with Compose v2 for the stack lifecycle;
+- Bash 3.2 or later;
+- Go only when building the distributable operator binary;
+- PostgreSQL client utilities matching the pinned server major version:
+  `psql`, `pg_dump` and `pg_restore`;
+- an existing external backup directory for backup artifacts and sanitized evidence.
 
-## Configure and validate
+The Compose file pins the PostgreSQL image by digest and the GoTrue image by
+version. The `vector` extension is accepted in the contracted `0.8.x` range.
+The host PostgreSQL utilities are prerequisites for the binary operations;
+they are not a local database runtime.
 
-From this directory:
+## Private configuration
+
+Create the owner-private configuration and validate it before any VM action:
 
 ```bash
 cp .env.example .env
-# Edit .env locally. Do not commit it.
+# Edit .env with owner-supplied values. Never commit it.
 ./scripts/validate-config.sh .env
 ```
 
-Every `replace-with-*` value is rejected. `POSTGRES_PASSWORD`, `GOTRUE_JWT_SECRET`, and `GOTRUE_OPERATOR_TOKEN` must be distinct, non-placeholder values; the password must be URI-safe because `GOTRUE_DB_DATABASE_URL` must match the PostgreSQL values exactly and retain `search_path=auth` for the Auth catalog. `GOTRUE_API_EXTERNAL_URL` is required and must be the externally reachable Auth base URL for this environment.
+The configuration names production/main and develop database targets and both Auth boundaries:
+`DEVELOP_DB_*`, `MAIN_DB_*`, `DEVELOP_AUTH_*` and `MAIN_AUTH_*`. The validator
+requires the exact `mindforge_develop` and `mindforge` names, distinct
+roles and secrets, internal `db:5432` Auth URLs with `search_path=auth`,
+explicit redirect lists and non-public default binds. `GOTRUE_API_EXTERNAL_URL`
+must identify each environment's Auth base URL. `GOTRUE_MAILER_AUTOCONFIRM` is
+an owner choice for the target environment; it is not a local test switch.
 
-The default binds are `127.0.0.1`. To request LAN binding, set the relevant bind address to `0.0.0.0` **and** set `ALLOW_LAN_BINDING=yes`; firewall and LAN changes remain an owner-controlled operation outside this package.
+## Build and distribute the operator
 
-## Start and operate one explicit project
-
-Every supported command requires an explicit Compose project name. Choose a unique lowercase name, for example `mf-local-dev`:
-
-```bash
-./scripts/up.sh .env mf-local-dev
-./scripts/inspect.sh .env mf-local-dev
-./scripts/lib/compose.sh .env mf-local-dev ps
-./scripts/lib/compose.sh .env mf-local-dev logs -f db
-./scripts/lib/compose.sh .env mf-local-dev logs -f auth
-./scripts/lib/compose.sh .env mf-local-dev down
-```
-
-`down` stops containers and removes the project network while preserving the database volume. Do not add `-v`, run a volume-prune command, or remove a volume as routine recovery. Destructive storage replacement requires a validated backup and an explicit owner decision.
-
-## Ports and connections
-
-`POSTGRES_PORT` and `AUTH_PORT` are host port values. The containers always use the fixed internal endpoints `db:5432` and `auth:9999`; changing a host port never changes GoTrue's internal healthcheck or API port.
-
-- PostgreSQL for the future Brain Engine or authorized administration: host bind from `DB_BIND_ADDR:${POSTGRES_PORT}`, database/user from `.env`.
-- Auth HTTP: host bind from `AUTH_BIND_ADDR:${AUTH_PORT}`, normally `http://127.0.0.1:${AUTH_PORT}`. A manual host-side check is `curl -fsS "http://127.0.0.1:${AUTH_PORT}/health"`.
-- No client receives direct PostgreSQL credentials. Future client Auth use needs a separately approved client contract.
-
-The historical logical Compose volume is `mindforge-postgres-data`; Docker resolves its actual name from the explicit project, normally `<project-name>_mindforge-postgres-data`. The original `infra` project therefore reuses `infra_mindforge-postgres-data`, while disposable projects remain isolated by their own project prefix. Do not hardcode a project-prefixed volume name or use a global `name:` override.
-
-## Migrations and Auth bootstrap
-
-`up.sh` always executes this order: configuration validation, healthy database, deterministic infrastructure migrations, the exact pinned `gotrue migrate` command, then `gotrue serve` and Auth readiness. A failed GoTrue migration prevents Auth startup.
-
-Infrastructure migration files have zero-padded numeric IDs and are replayed lexically by `scripts/migrate.sh`. The `infra.migration_ledger` stores ID, SHA-256, and application time. Exact replays are skipped; a changed applied file, duplicate ID, non-canonical name, or backfill before the highest applied ID fails before new migration DDL.
-
-Run only the infrastructure migration step when needed:
+Build for the declared destination platform and keep the generated binary
+outside the checkout:
 
 ```bash
-./scripts/migrate.sh .env mf-local-dev
+GOOS=linux GOARCH=amd64 go build \
+  -o /absolute/path/to/mindforge-infra \
+  ./src/brain-engine/features/infra/tools/cmd/mindforge-infra
+export MINDFORGE_INFRA_BIN=/absolute/path/to/mindforge-infra
 ```
 
-The migration set may contain infrastructure bookkeeping, approved extensions, and the GoTrue bootstrap boundary only. It must not create Mindforge domain objects.
+The resulting Go binary does not require Go or Python when executed on the
+selected platform. Database operations still require the compatible external
+PostgreSQL client utilities listed above.
 
-## Inspect
+## VM-only lifecycle and explicit develop provisioning
+
+Use a named Compose project for the owner-designated VM stack and provide an
+operator plus a non-secret authorization reference on every operation:
 
 ```bash
-./scripts/inspect.sh .env mf-local-dev
+./scripts/up.sh .env infra operator-id authorization-ref
+./scripts/inspect.sh .env infra operator-id authorization-ref
+./scripts/lib/compose.sh .env infra ps
+./scripts/lib/compose.sh .env infra logs -f db
+./scripts/lib/compose.sh .env infra logs -f auth-develop
+./scripts/lib/compose.sh .env infra logs -f auth
+./scripts/lib/compose.sh .env infra down
 ```
 
-The command independently checks database and Auth containers, PostgreSQL readiness, Auth health, the infrastructure ledger, the GoTrue schema/migration marker, and the approved extension set. It returns non-zero if any one of those checks is red; it does not treat `/health` alone as Auth acceptance.
+The Compose project name `infra` preserves the existing
+`infra_mindforge-postgres-data` volume on the designated cluster. The existing
+`auth` service remains bound to `mindforge`; `auth-develop` has its own
+credentials and binds only to `mindforge_develop`.
 
-## Backup
+On an existing initialized cluster, normal startup first checks both
+Mindforge targets without mutation. If develop is absent or incomplete,
+startup reports an incomplete result, blocks develop migration/Auth startup,
+and checks main Auth health read-only. It does not stop, recreate, rebind or
+otherwise mutate the existing PostgreSQL cluster or main Auth service. Normal
+startup and restart never create, replace, rename, or copy either database.
 
-Use an existing external backup directory, never a directory inside this checkout:
+Adding develop to the existing volume is an explicit, separately authorized
+provisioning action. After authorizing that target-specific operation, invoke
+the fixed-target adapter:
 
 ```bash
-./scripts/backup.sh .env mf-local-dev /absolute/external-backup-directory
+./scripts/provision-develop.sh .env mindforge_develop operator-id authorization-ref
 ```
 
-The script uses owner-private permissions, writes a temporary artifact, and only atomically promotes a non-empty final dump after `pg_dump` succeeds. Dumps, backups, `.env`, partial files, and temporary validation artifacts are ignored locally and are not part of the versioned-surface manifest.
+The adapter delegates to the existing operator, which performs a read-only
+cluster inventory and recheck before adding only the configured develop role
+and `mindforge_develop`. It requires main to exist and develop to be absent;
+it refuses unexpected or partial state and never mutates `mindforge`. This
+command is not part of startup. On a truly fresh empty cluster only, the
+separate initdb bootstrap creates both databases; it is not used to provision
+an existing volume.
 
-## Restore only to an exclusive disposable target
+When both targets are complete, startup applies their independent
+infrastructure migrations and Auth migrations/readiness checks. Inspection
+reports the database and each database/Auth pair independently. Stopping the
+project with `down` preserves the durable volume; `down -v`, volume pruning
+and direct volume removal are not recovery procedures.
 
-Restore is deliberately not a generic recovery shortcut. The disposable acceptance runner generates the target ID, environment, project, database, and volume relationship. Its restore project format is `mf-accept-<target-id>-restore`.
+Compose lifecycle commands are for the designated VM stack. They do not
+authorize a local or disposable database substitute.
+
+`POSTGRES_PORT`, `DEVELOP_AUTH_PORT` and `MAIN_AUTH_PORT` are host port values;
+the containers use `db:5432` and Auth `:9999` internally. A separate authorized
+host-side Auth health check may use `curl` against the configured Auth host port.
+
+## Migration workflow
+
+Infrastructure migrations are ordered, hash-checked and target-specific. The
+approved feature migration catalog maps Brain Core to global infra-catalog ID `0006`, after infrastructure IDs `0001` through `0005`. The descriptor at
+`src/brain-engine/features/infra/postgres/feature-migrations/catalog.json`
+points to the canonical feature-owned
+`src/brain-engine/features/brain/migrations/0001_brain_core.sql`, its
+`0001_brain_core.preflight.sql`, and `0001_brain_core.verify.sql`. It pins the
+SHA-256 hashes of the canonical payload and both checks; the payload is not
+copied into infra. `infra.migration_ledger` is the only applied-migration ledger.
+
+Apply infrastructure state to an explicit target through the binary adapter:
+
+```bash
+./scripts/migrate.sh .env mindforge_develop operator-id authorization-ref infrastructure
+```
+
+The Brain Core feature migration is applied through the same operator, first
+in `mindforge_develop`:
+
+```bash
+./scripts/migrate.sh .env mindforge_develop operator-id authorization-ref feature verification/brain-core-run-id
+```
+
+The Go operator resolves the registered feature-owned sources from the
+repository root and performs the read-only preflight. It applies the canonical
+payload, runs schema verification and writes the ledger record in the same transaction. A matching global ID and source hash is a no-op only when
+preflight confirms the complete schema. Feature migrations cannot target
+`mindforge`; promotion applies the same catalog-resolved bytes to main only
+after complete develop evidence, separate production authorization, a fresh
+validated backup and successful main preflight/recheck. Altered source bytes,
+an unknown target, omitted authority, partial schema or incomplete evidence
+fail closed. A correction is a new ordered migration.
+
+## Promotion and backup
+
+Promotion never copies users, sessions, feature data, a database or a volume.
+It verifies the exact feature catalog and successful develop evidence, performs
+a read-only main preflight, creates and validates a fresh main backup outside
+Git, rechecks main for drift, applies the same bytes and hash, and records
+target evidence:
+
+```bash
+"$MINDFORGE_INFRA_BIN" promote \
+  --config .env \
+  --source-root /absolute/path/to/mindforge \
+  --target mindforge \
+  --operator-id operator-id \
+  --authorization-ref authorization-ref \
+  --output-dir /absolute/external/infra-evidence \
+  --verification-ref verification/feature-id
+```
+
+The promotion command requires an external backup directory. It validates
+`pg_dump` completion, archive listing through `pg_restore --list`, the archive
+hash and target-bound manifest before any main mutation. Failed or stale
+preflight, changed source bytes, drift, incomplete develop evidence or a
+missing backup preserves a sanitized failure record and leaves main untouched.
+An identical already-applied hash is an idempotent outcome.
+
+The adapter form for an independent backup check is:
+
+```bash
+./scripts/backup.sh .env mindforge operator-id authorization-ref \
+  /absolute/external/infra-evidence
+```
+
+Backup artifacts, manifests and promotion evidence remain outside this
+checkout. A backup check proves completion, integrity, listing and target
+identity. Backup validation does not prove restoration.
+
+## Guarded restore and recovery
+
+Restore is a separate, explicit recovery capability. It requires an
+environment-bound manifest, matching archive hash and listing, an identified
+target, operator authorization and a target-bound replacement confirmation:
 
 ```bash
 ./scripts/restore.sh \
-  /absolute/path/to/backup.dump \
-  /absolute/path/to/generated-restore.env \
-  mf-accept-<target-id>-restore \
-  <target-id> \
-  RESTORE:<target-id>
+  /absolute/external/infra-evidence/mindforge-infra-*.dump \
+  /absolute/external/infra-evidence/mindforge-infra-*.manifest.json \
+  .env mindforge operator-id authorization-ref \
+  replace/mindforge/owner-confirmation \
+  /absolute/external/infra-evidence
 ```
 
-Before Docker mutation, restore validates the dump with local `pg_restore --list`, the exact target-bound confirmation, generated environment target ID, exclusive project/database/volume, and absence of existing target containers or volume. Auth remains stopped. Restore uses a single PostgreSQL transaction and never selects an observed or existing stack.
+Restore never silently selects a database, volume or source target and never
+serves as promotion. Practical restoration of a fresh dump remains pending;
+there is no restore proof claim in local or static evidence. Restarting a
+container, recreating a service, restoring a backup and deleting storage are
+separate actions with separate authority.
 
-## Disposable acceptance matrix
+## VM evidence sequence
 
-The acceptance runner creates unpredictable IDs and three separate loopback-only projects: `mf-accept-<run-id>-src`, `mf-accept-<run-id>-restore`, and `mf-accept-<run-id>-replay`. It rejects a primary environment, non-loopback bind, reused volume or project, divergent target ID, and VM mode before a local green matrix.
+The owner-run evidence sequence is separate for each gate:
 
-```bash
-bash tests/run.sh static all
-bash tests/run.sh unit all
-bash tests/run.sh integration --local-disposable
-```
+1. authorize VM access, target access and mutation independently;
+2. validate the private configuration and the pinned Compose render;
+3. record PostgreSQL readiness and independent Auth readiness for both pairs;
+4. run read-only preflight for `mindforge_develop` and `mindforge`;
+5. verify infrastructure ledger, Auth schema markers and `vector` in both targets;
+6. verify environment-isolated Auth flows and stop/start persistence;
+7. before promotion, create and validate the fresh `mindforge` backup;
+8. after separate authorization, apply and verify Brain Core global migration
+   `0006` in develop;
+9. promote the immutable bytes to main only after the sequence above is green.
 
-The local matrix uses only synthetic identities and data. It validates database/Auth readiness, sign-up and password grant without printing a token, vector transaction rollback, a synthetic infra marker across controlled restart, external backup, isolated restore, clean migration replay, and absence of product tables. It stops containers and networks with ordinary `down`, never `-v`; the three exclusive database volumes deliberately remain and are recorded in a protected temporary evidence file.
+Every result must identify its target, operator, authority reference and
+sanitized evidence class. Runtime status is not inferred from documentation,
+mock output, static checks, unit tests or a build.
 
-VM validation is separately authorized only after a fresh local matrix succeeds. Use an owner-authorized key explicitly: `MF_VM_SSH_IDENTITY_FILE=/absolute/path/to/authorized-key bash tests/run.sh integration --vm-disposable`. The runner reruns the local matrix first, then copies only this corrected infra package to a unique temporary directory on the authorized test VM, where it runs the same disposable matrix. It does not use the observed stack, production, firewall/LAN changes, DNS, TLS, Coolify, real data, or volume deletion.
+## Secrets and operational limits
 
-## Secret rotation and recovery boundary
+Real credentials, Auth tokens, connection URLs containing secrets, database
+artifacts and machine-specific addresses stay in owner-private configuration or
+external storage. The repository ignores `.env`, generated binaries, backup
+artifacts, manifests and sanitized operational evidence. Secret rotation means
+changing the private values and matching Auth URLs, validating them, and then
+performing an owner-approved controlled restart.
 
-Secrets remain owner-supplied, unversioned configuration. Rotation means choosing new credentials, updating the private environment file and its matching GoTrue database URL, validating it, then performing an owner-approved controlled restart. It never means printing a secret, editing a backup, deleting storage, or treating a volume as a backup.
-
-If startup, migration, Auth, backup, restore, or inspect fails, retain the diagnosable service state and use its specific error. Restarting a container, recreating a service, restoring a disposable target, and deleting storage are different operations with different authority. There is no automatic destructive recovery command in this package.
-
-## Evidence limits
-
-The versioned-surface manifest and a temporary SHA-256 manifest can prove the observed local file surface without exposing configuration values. This checkout has no `.git` metadata, so they do not prove tracking, a commit, a branch, publication, or clean Git state. Static/unit checks do not prove Docker runtime, the test VM, production, Internet/LAN exposure, real data, firewall, DNS, TLS, or Coolify behavior.
+This package exposes no Mindforge endpoint. `contracts/openapi/registry.yaml`
+remains empty until a separate approved Brain Engine HTTP contract exists.
+Local plan and static or fake-backed evidence does not prove VM state, SQL application, backup or restore behavior, or runtime behavior.

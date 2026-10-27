@@ -3,11 +3,11 @@ schema_version: 1
 flow: orchestration-flow
 feature: brain
 task: brain-core
-revision: 2
+revision: 4
 status: approved
-owner_approved_at: 2026-09-17T03:17:44Z
+owner_approved_at: 2026-09-30T20:00:01Z
 tdd: yes
-implementation_authorized_at: 2026-09-17T03:00:04Z
+implementation_authorized_at: null
 repositories:
   - mindforge
 ---
@@ -20,8 +20,9 @@ Estabelecer o primeiro limite comportamental do Brain privado: cada usuário
 possui um único Brain, criado com um root estrutural interno e sem qualquer
 camada visível; o usuário cria a primeira camada. A hierarquia observável é
 livremente aninhável, governada pelo Brain Engine. A verificação independente
-de conformidade do ATDD retornou PASS e o contrato foi aprovado conforme a
-autorização prévia do owner.
+de conformidade do ATDD comportamental ATDD-01..16 retornou PASS na revisão 2.
+O owner aprovou a revisão 4 para a estrutura SQL inicial e seu fluxo de
+aplicação, sem autorizar execução em banco ou VM.
 
 ## Scope
 
@@ -54,6 +55,7 @@ autorização prévia do owner.
   hierarquia; nome e posição são atributos mutáveis, não identidade.
 - Brain Engine como autoridade única para autenticação, autorização, regras,
   validação, persistência, efeitos e estado durável do Brain.
+- Migration SQL inicial, versionada e imutável após a primeira aplicação, para persistir este recorte em um schema PostgreSQL próprio do Brain Core. A aplicação segue o fluxo develop-first do contrato de infra e não ocorre automaticamente no startup.
 
 ### Out
 
@@ -65,8 +67,8 @@ autorização prévia do owner.
 - Operação offline, sincronização offline, réplicas locais e conflitos fora das
   criações e renames concorrentes explicitamente definidos neste contrato.
 - Retrieval, documentos, grafo, embeddings e indexação.
-- Schema, SQL, migração, API, método/path HTTP, transporte, OpenAPI,
-  implementação, código de teste, runtime, deploy ou publicação.
+- Outras migrations ou objetos de domínio além da estrutura inicial do Brain Core; API, método/path HTTP, transporte, OpenAPI, runtime, deploy ou publicação.
+- Auth próprio, roles, grants, RLS, funções/RPC, extensões, seeds, tabelas de Inbox, Hive Mind, documentos ou qualquer acesso direto do client ao PostgreSQL.
 
 ## Observable behavior
 
@@ -117,8 +119,13 @@ autorização prévia do owner.
 - Um rename deve ser condicionado ao estado que o solicitante observou; se esse
   estado já não for atual, o Brain Engine retorna conflito e não aplica a
   alteração. O formato técnico do conflito permanece não definido.
-- Nenhum formato de identificador, esquema de persistência, banco, migração ou
-  contrato OpenAPI é escolhido por este documento.
+- O comportamento de Brain não exige formato específico de ID. A revisão 4
+  inclui somente a persistência inicial descrita abaixo, sem escolher API ou
+  contrato OpenAPI.
+- A revisão 3 registrou a permissão para schemas PostgreSQL separados sem aprovar estrutura ou SQL específicos. A aprovação da estrutura inicial e da política de migration ocorre nesta revisão 4; execução em banco permanece uma autorização separada.
+- Esta revisão aprova o schema `brain_core` e o payload inicial `0001_brain_core.sql` como fonte canônica da feature: tabela `brains` com associação única por owner, tabela `nodes` com root interno e layers identificados por ID, vínculo parent no mesmo Brain, versão para conflito de rename e índices para unicidade do root e busca de filhos. O payload não cria dados de usuário, Auth, permissões ou endpoints.
+- O número local `0001` identifica o primeiro payload do Brain Core, não um ID global livre do catálogo da infra. Antes de qualquer aplicação, o fluxo aprovado deve vinculá-lo a uma identidade global sem colisão, ao hash dos bytes canônicos e ao alvo explícito `mindforge_develop`; promoção a `mindforge` usa os mesmos bytes e as proteções da infra.
+- O histórico autoritativo de aplicação por alvo é o ledger coordenado pelo operador da infra. Os `.psql` preparados e `brain_core.migration_ledger` não constituem uma segunda rota de execução; suas verificações específicas de estado/shape devem ser preservadas no fluxo aprovado ou substituídas por proteção equivalente antes de aplicação.
 - Client, Prefrontal Cortex e Hidden Cortex solicitam ações ao Brain Engine;
   não possuem autoridade direta sobre dados persistentes.
 
@@ -147,9 +154,9 @@ autorização prévia do owner.
 
 ## Acceptance criteria
 
-ATDD formalizado — os cenários abaixo foram verificados independentemente com
-resultado `PASS` e ainda não constituem testes executados. Eles descrevem
-apenas comportamento observável; método, path, schema, persistência e
+ATDD-01..16 foram verificados independentemente com resultado `PASS` na
+revisão 2 e não constituem testes executados. ATDD-17..19 foram aprovados
+pelo owner nesta revisão 4; sua execução ainda não foi verificada. Método, path e
 representação técnica de erros permanecem fora deste contrato.
 
 - [ ] **ATDD-01 — Um Brain por owner:** dado um owner autenticado sem Brain
@@ -218,6 +225,9 @@ representação técnica de erros permanecem fora deste contrato.
   então cada camada continua sendo distinguida por sua identidade estável, sem
   nome ou posição serem usados como identidade ou como motivo para mesclar as
   camadas.
+- [ ] **ATDD-17 — Persistência inicial da feature:** dada uma migration Brain Core aprovada e ainda ausente no alvo develop, quando o operador da infra verifica o alvo e aplica os bytes canônicos da feature, então o schema `brain_core`, `brains`, `nodes` e seus vínculos e índices existem no mesmo resultado transacional que o registro autoritativo da aplicação, sem criar Brain ou camada inicial para qualquer usuário.
+- [ ] **ATDD-18 — Estado parcial ou divergente não vira sucesso:** dado schema parcial, identidade/hash diferente, ledger inconsistente ou privilégio insuficiente, quando o operador verifica ou tenta aplicar a migration, então não declara aplicação concluída, não promove e exige reconciliação antes de repetir. Uma aplicação idêntica já concluída é reconhecida sem reexecutar DDL.
+- [ ] **ATDD-19 — Desenvolver antes de promover:** dado o payload Brain Core aplicado e verificado em `mindforge_develop`, somente uma operação separadamente autorizada pode aplicar os mesmos bytes/hash em `mindforge`, após backup validado, preflight e evidência de develop; os `.psql` isolados não comprovam esses gates.
 
 ## TDD selection
 
@@ -233,9 +243,11 @@ representação técnica de erros permanecem fora deste contrato.
   deployment ou publicação foi executado; nada disso é provado por este
   contrato.
 - O registro OpenAPI continua vazio e este documento não autoriza endpoint,
-  schema, SQL, código ou plano. A formalização do ATDD está concluída nesta
-  revisão, a verificação independente de conformidade retornou `PASS` e o
-  contrato foi promovido a aprovado conforme a autorização prévia do owner.
+  código ou execução SQL. A revisão 4 aprova escopo documental
+  para o schema/payload inicial, sem evidência de parser PostgreSQL, aplicação,
+  estado instalado, runtime ou promoção. O `PASS` anterior cobre os cenários
+  comportamentais ATDD-01..16 da revisão 2; ATDD-17..19 foram aprovados pelo
+  owner, mas não constituem testes executados.
 
 ## Authority required
 
@@ -248,6 +260,8 @@ representação técnica de erros permanecem fora deste contrato.
   sem worktree.
 - Essa autorização é condicionada e local: não autoriza commit, push, deploy,
   produção, migrations executadas ou ações remotas.
+- A aprovação da revisão 3 registra somente a permissão para separar schemas; a autorização local anterior não se estende à definição ou aplicação do payload SQL `0001` nem resolve a política de migrations com a infra.
+- A revisão 4 e a revisão 6 correspondente do contrato de infra foram aprovadas pelo owner. Um plano atualizado e autorização local de implementação são necessários antes de alterar código. Aprovação de contrato não implica preflight, SQL, VM, backup, promoção, commit ou push.
 
 ## Failure and recovery
 
@@ -304,6 +318,8 @@ representação técnica de erros permanecem fora deste contrato.
   para o segundo, que deve refazer a operação.
 - O acesso e as alterações são owner-only.
 - O Brain Engine é a autoridade única.
+- Schemas PostgreSQL separados são permitidos para organizar o Mindforge. A revisão 4 aprova a estrutura SQL inicial do Brain Core e sua política de migration; aplicação em banco permanece pendente de autorização operacional.
+- Decisão da revisão 4: o Brain Core é dono do SQL e da verificação da forma do seu schema, enquanto o operador da infra é o único coordenador de alvo, histórico de aplicação, evidência e promoção. Não há duas autoridades de migration por alvo.
 - Em 2026-09-17T03:00:04Z, o owner autorizou que, após o ATDD ser
   formalizado e considerado conforme, este contrato seja aprovado e o plano
   seja criado; após o plano, autorizou execução local por nova
@@ -344,4 +360,45 @@ amendment:
     - arbitrary nesting and future Hive Mind compatibility boundary
     - technical interfaces, schema, API, migration and runtime remaining out of scope
   owner_approved_at: 2026-09-17T03:17:44Z
+```
+
+```yaml
+amendment:
+  id: brain-core-schema-separation-2026-09-30
+  resulting_revision: 3
+  reason: "Registrar a permissão do owner para schemas PostgreSQL separados sem antecipar a aprovação da estrutura ou da migration Brain Core."
+  evidence:
+    - "O owner confirmou em 2026-09-30 que schemas separados são permitidos para organizar o fluxo do Mindforge."
+  changed_clauses:
+    - scope
+    - interfaces_and_data
+    - owner_decisions
+  preserved_clauses:
+    - owner-only privacy and Brain Engine authority
+    - exact schema, SQL, migration, API and runtime requiring a separate technical contract decision
+    - no database or VM execution authority
+  owner_approved_at: 2026-09-30T19:44:34Z # source-registration timestamp; exact owner-message time unavailable
+```
+
+```yaml
+amendment:
+  id: brain-core-initial-sql-and-migration-policy-2026-09-30
+  resulting_revision: 4
+  reason: "Incluir a estrutura SQL inicial no contrato da feature e eliminar a rota paralela de aplicação que não produz evidência de promoção da infra."
+  evidence:
+    - "Payload local 0001_brain_core.sql e envelopes .psql preparados sem execução PostgreSQL."
+    - "O operador da infra exige catálogo global, ledger e evidência por alvo para develop-first e promoção."
+  changed_clauses:
+    - scope
+    - interfaces_and_data
+    - acceptance_criteria
+    - validation_boundary
+    - authority_required
+    - owner_decisions
+  preserved_clauses:
+    - ATDD-01..16 and owner-only Brain behavior
+    - feature ownership of its canonical SQL
+    - no HTTP endpoint, VM access or executed SQL authority
+  owner_approved_at: 2026-09-30T20:00:01Z # source-registration timestamp; exact owner-message time unavailable
+  status: approved
 ```
